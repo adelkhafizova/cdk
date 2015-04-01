@@ -14,13 +14,15 @@ public class Algorithm {
 		this.molecule_data = new ArrayList<IMolecule>();
 		this.activity_data = new ArrayList<Boolean>();
 		this.atom_states = new ArrayList<ArrayList<Boolean>>(); //true - nothing else to do with it, false - look
+		this.pi = 3.1415926535897932384;
+		this.final_signatures = new ArrayList<AtomSignature>();
 	}
 	void data_inizialization(String pathname) { //pathname of a list of sdf file paths with activity to fill data
 		//here fill molecule_data, activity_data and allocate memory for atom states and fill it with 0
+		//while initializing determine how many activity compounds there are
 	}
 	class Signature_state {
 		Signature_state() {
-			//this.processed_condition = 0;
 			this.met_positions = new ArrayList<Signature_position>();
 			n_dash = 0;
 			m_dash = 0;
@@ -41,8 +43,8 @@ public class Algorithm {
 		int molecule_number;
 		int atom_number;
 		Signature_position(int i, int j) {
-			this.molecule_number = 0;
-			this.atom_number = 0;
+			this.molecule_number = i;
+			this.atom_number = j;
 		}
 	};
 	void run() {
@@ -51,7 +53,6 @@ public class Algorithm {
 			int molecule_index = 0;
 			for (IMolecule m: this.molecule_data) {
 				for (int i = 0; i < m.getAtomCount(); i++) {
-					//AtomSignature as = new AtomSignature(i, height, m);
 					if (this.atom_states.get(molecule_index).get(i) == false) { //not in the current signatures and not viewed
 						AtomSignature as = new AtomSignature(i, height, m);
 						if (current_signatures.containsKey(as) == false) {
@@ -63,31 +64,44 @@ public class Algorithm {
 							current_signatures.get(as).add(molecule_index, i, this.activity_data.get(molecule_index));
 						}
 					}
-					/*case true: //met but not interesting
-						break;*/
-					/*case 2: //met but interesting
-						AtomSignature as1 = new AtomSignature(i, height, m);
-						if (current_signatures.containsKey(as1) == false) {
-							Signature_state ss1 = new Signature_state();
-							ss1.add(molecule_index, i, this.activity_data.get(molecule_index));
-							current_signatures.put(as1, ss1);
-						}
-						else {
-							current_signatures.get(as1).add(molecule_index, i, this.activity_data.get(molecule_index));
-						}
-						break;
-					case 3: //finished
-						break;*/
 				}
 				molecule_index++;
 			}
-			
+			for (Map.Entry<AtomSignature, Signature_state> substructure: current_signatures.entrySet()) {
+				if (substructure.getValue().n_dash > minimum_occurence) {
+					double current_frequency = substructure.getValue().m_dash / substructure.getValue().n_dash;
+					if (current_frequency > substructure_frequency) {
+						double current_p_value = 0;
+						double n_ = substructure.getValue().n_dash;
+						double m_ = substructure.getValue().m_dash;
+						for (double k = m_; k < n_; k++) {
+							current_p_value += Math.pow(n_/(2*pi*(n_-k)*k), 0.5)*Math.pow(active_num/k, k)*Math.pow((data_num - active_num)/(n_ - k), n_ - k)*Math.pow(n_/data_num, n_);
+						}
+						current_p_value += Math.pow(active_num/data_num, n_);
+						if (current_p_value < p_value_threshold) {
+							for (Signature_position sp: substructure.getValue().met_positions) {
+								atom_states.get(sp.molecule_number).set(sp.atom_number, true);
+							}
+							final_signatures.add(substructure.getKey());
+						}
+					}
+				}
+				else {
+					for (Signature_position sp: substructure.getValue().met_positions) {
+						atom_states.get(sp.molecule_number).set(sp.atom_number, true);
+					}
+				}
+			}
 		}
 	}
 	double p_value_threshold;
 	int minimum_occurence;
 	double substructure_frequency;
+	int data_num;
+	int active_num;
+	double pi;
 	ArrayList<IMolecule> molecule_data;
 	ArrayList<Boolean> activity_data;
 	ArrayList<ArrayList<Boolean>> atom_states;
+	ArrayList<AtomSignature> final_signatures;
 }
