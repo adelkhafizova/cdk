@@ -197,37 +197,37 @@ public class Algorithm {
         }
     }
 
-    void dump_data() throws FileNotFoundException, UnsupportedEncodingException {
-        PrintWriter writer = new PrintWriter("final_signatures_active.txt", "UTF-8");
+    void dump_data(String path) throws FileNotFoundException, UnsupportedEncodingException {
+        PrintWriter writer = new PrintWriter(path + "final_signatures_active.txt", "UTF-8");
         for (Map.Entry<String, String> substructure : final_signatures_active.entrySet()) {
             writer.println(substructure.getKey() + ' ' + substructure.getValue());
         }
         writer.close();
-        writer = new PrintWriter("final_signatures_inactive.txt", "UTF-8");
+        writer = new PrintWriter(path + "final_signatures_inactive.txt", "UTF-8");
         for (Map.Entry<String, String> substructure : final_signatures_inactive.entrySet()) {
             writer.println(substructure.getKey() + ' ' + substructure.getValue());
         }
         writer.close();
-        writer = new PrintWriter("signatures_active_heights.txt", "UTF-8");
+        writer = new PrintWriter(path + "signatures_active_heights.txt", "UTF-8");
         for (Map.Entry<String, Integer> substructure : heights_active.entrySet()) {
             writer.println(substructure.getKey() + ' ' + substructure.getValue());
         }
         writer.close();
-        writer = new PrintWriter("signatures_inactive_heights.txt", "UTF-8");
+        writer = new PrintWriter(path + "signatures_inactive_heights.txt", "UTF-8");
         for (Map.Entry<String, Integer> substructure : heights_inactive.entrySet()) {
             writer.println(substructure.getKey() + ' ' + substructure.getValue());
         }
         writer.close();
     }
 
-    void run() throws FileNotFoundException, UnsupportedEncodingException, CDKException {
+    void run(String path) throws FileNotFoundException, UnsupportedEncodingException, CDKException {
         for (int height = 0; height < 15; height++) { //then redo while there are interesting substructures
             Map<String, Signature_state> current_signatures = new HashMap<String, Signature_state>();
             Map<String, String> signature_to_inchi = new HashMap<String, String>();
             find_substructures_with_height(current_signatures, signature_to_inchi, height);
             process_signatures(current_signatures, height);
         }
-        dump_data();
+        dump_data(path);
     }
 
 	double p_value_threshold;
@@ -246,9 +246,9 @@ public class Algorithm {
 	
 	public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException, CDKException,
             IOException {
-		Algorithm a = new Algorithm(0.05, 5, 0.8);
-		a.data_initialization("cas_4337.sdf", "mutagen", "nonmutagen");
-		a.run();
+	Algorithm a = new Algorithm(0.05, 5, 0.8);
+	a.data_initialization("cas_4337.sdf", "mutagen", "nonmutagen");
+	a.run(path);
         Classification classifier = new Classification();
         classifier.data_initialization("");
         classifier.classify_data("test_mol_for_class.sdf");
