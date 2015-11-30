@@ -230,28 +230,28 @@ public class Algorithm {
         dump_data(path);
     }
 
-	double p_value_threshold;
-	int minimum_occurrence;
-	double substructure_frequency;
-	int data_num;
-	int active_num;
-	double pi;
-	ArrayList<IMolecule> molecule_data;
-	ArrayList<Boolean> activity_data;
-	ArrayList<ArrayList<Boolean>> atom_states;
-	HashMap<String, String> final_signatures_active;
-	HashMap<String, String> final_signatures_inactive;
+    double p_value_threshold;
+    int minimum_occurrence;
+    double substructure_frequency;
+    int data_num;
+    int active_num;
+    double pi;
+    ArrayList<IMolecule> molecule_data;
+    ArrayList<Boolean> activity_data;
+    ArrayList<ArrayList<Boolean>> atom_states;
+    HashMap<String, String> final_signatures_active;
+    HashMap<String, String> final_signatures_inactive;
     HashMap<String, Integer> heights_active;
     HashMap<String, Integer> heights_inactive;
 	
-	public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException, CDKException,
+    public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException, CDKException,
             IOException {
 	Algorithm a = new Algorithm(0.05, 5, 0.8);
 	a.data_initialization("cas_4337.sdf", "mutagen", "nonmutagen");
 	a.run(path);
-        Classification classifier = new Classification();
-        classifier.data_initialization("");
-        classifier.classify_data("test_mol_for_class.sdf");
+       	Classification classifier = new Classification();
+       	classifier.data_initialization("");
+       	classifier.classify_data("test_mol_for_class.sdf");
         //a.classify_data("final_signatures_active.txt", "final_signatures_inactive.txt", "test_mol_for_class.sdf");
-	}
+    }
 }
