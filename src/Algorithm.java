@@ -247,11 +247,11 @@ public class Algorithm {
     public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException, CDKException,
             IOException {
 	Algorithm a = new Algorithm(0.05, 5, 0.8);
-	a.data_initialization("cas_4337.sdf", "mutagen", "nonmutagen");
+	a.data_initialization("pubchem_cyp1a2_train.sdf", "Inhibitor", "Noninhibitor");
 	a.run(path);
        	Classification classifier = new Classification();
        	classifier.data_initialization("");
-       	classifier.classify_data("test_mol_for_class.sdf");
+       	classifier.classify_data("pubchem_cyp1a2_test.sdf ");
         //a.classify_data("final_signatures_active.txt", "final_signatures_inactive.txt", "test_mol_for_class.sdf");
     }
 }
