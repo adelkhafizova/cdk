@@ -248,7 +248,7 @@ public class Algorithm {
             IOException {
 	Algorithm a = new Algorithm(0.05, 5, 0.8);
 	a.data_initialization("pubchem_cyp1a2_train.sdf", "Inhibitor", "Noninhibitor");
-	a.run(path);
+	a.run("");
        	Classification classifier = new Classification();
        	classifier.data_initialization("");
        	classifier.classify_data("pubchem_cyp1a2_test.sdf");
