@@ -251,7 +251,7 @@ public class Algorithm {
 	a.run(path);
        	Classification classifier = new Classification();
        	classifier.data_initialization("");
-       	classifier.classify_data("pubchem_cyp1a2_test.sdf ");
+       	classifier.classify_data("pubchem_cyp1a2_test.sdf");
         //a.classify_data("final_signatures_active.txt", "final_signatures_inactive.txt", "test_mol_for_class.sdf");
     }
 }
