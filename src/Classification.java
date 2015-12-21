@@ -72,8 +72,7 @@ class Classification {
         IAtomContainer ac = MoleculeSignature.fromSignatureString(as.toCanonicalString(), builder);
         InChIGeneratorFactory factory = InChIGeneratorFactory.getInstance();
         InChIGenerator gen = factory.getInChIGenerator(ac);
-        String inchi = gen.getInchi();
-        return inchi;
+        return gen.getInchi();
     }
 
 	void classify_data(String molecule_file) throws CDKException, IOException {

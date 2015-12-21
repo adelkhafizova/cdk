@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Iterator;
+
 import org.openscience.cdk.DefaultChemObjectBuilder;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.interfaces.IChemObjectBuilder;
@@ -107,8 +108,7 @@ public class Algorithm {
         IAtomContainer ac = MoleculeSignature.fromSignatureString(as.toCanonicalString(), builder);
         InChIGeneratorFactory factory = InChIGeneratorFactory.getInstance();
         InChIGenerator gen = factory.getInChIGenerator(ac);
-        String inchi = gen.getInchi();
-        return inchi;
+        return gen.getInchi();
     }
 
     String atom_signature_to_inchi(String as) throws CDKException {
@@ -116,12 +116,11 @@ public class Algorithm {
         IAtomContainer ac = MoleculeSignature.fromSignatureString(as, builder);
         InChIGeneratorFactory factory = InChIGeneratorFactory.getInstance();
         InChIGenerator gen = factory.getInChIGenerator(ac);
-        String inchi = gen.getInchi();
-        return inchi;
+        return gen.getInchi();
     }
 
     void find_substructures_with_height(Map<String, Signature_state> current_signatures,
-                                        Map<String, String> signature_to_inchi, int height) throws CDKException{
+                                        Map<String, String> signature_to_inchi, int height) throws CDKException {
         int molecule_index = 0;
         for (IMolecule m : this.molecule_data) { //find all interesting substructures
             for (int i = 0; i < m.getAtomCount(); i++) {
@@ -243,15 +242,16 @@ public class Algorithm {
     HashMap<String, String> final_signatures_inactive;
     HashMap<String, Integer> heights_active;
     HashMap<String, Integer> heights_inactive;
-	
+
     public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException, CDKException,
             IOException {
-	Algorithm a = new Algorithm(0.05, 5, 0.8);
-	a.data_initialization("pubchem_cyp1a2_train.sdf", "Inhibitor", "Noninhibitor");
-	a.run("");
-       	Classification classifier = new Classification();
-       	classifier.data_initialization("");
-       	classifier.classify_data("pubchem_cyp1a2_test.sdf");
+        Algorithm a = new Algorithm(0.05, 5, 0.8);
+        a.data_initialization("pubchem_cyp1a2_train.sdf", "Inhibitor", "Noninhibitor");
+        a.run("");
+        Classification classifier;
+        classifier = new Classification();
+        classifier.data_initialization("");
+        classifier.classify_data("pubchem_cyp1a2_test.sdf");
         //a.classify_data("final_signatures_active.txt", "final_signatures_inactive.txt", "test_mol_for_class.sdf");
     }
 }
