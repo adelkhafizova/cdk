@@ -2,6 +2,7 @@ import org.openscience.cdk.DefaultChemObjectBuilder;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.interfaces.IMolecule;
 import org.openscience.cdk.io.iterator.IteratingMDLReader;
+import org.openscience.cdk.tools.SystemOutLoggingTool;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -10,6 +11,7 @@ import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.Map;
 
 public class Observer {
     Observer(String original, String trained) {
@@ -23,14 +25,46 @@ public class Observer {
         algorithm_trained.data_initialization(trained_data_file, "Inhibitor", "Noninhibitor");
     }
     void analyze() {
-        Iterator it = algorithm_original.final_signatures_active.entrySet().iterator();
+        active_active = new HashMap<String, String>();
+        active_inactive = new HashMap<String, String>();
+        inactive_active = new HashMap<String, String>();
+        inactive_inactive = new HashMap<String, String>();
+        Iterator it = algorithm_trained.active.entrySet().iterator();
+        float active = 0;
+        float false_negative = 0;
+        float false_positive = 0;
+        float inactive = 0;
         while (it.hasNext()) {
-
+            Map.Entry pair = (Map.Entry)it.next();
+            if (algorithm_original.active.containsKey(pair.getKey())) {
+                active_active.put((String) pair.getKey(), (String) pair.getValue());
+                ++active;
+            }
+            if (algorithm_original.inactive.containsKey(pair.getKey())) {
+                active_inactive.put((String)pair.getKey(), (String)pair.getValue());
+                ++false_positive;
+            }
         }
-        float active = active_active.size()/algorithm_original.final_signatures_active.size();
-        float false_negative = active_inactive.size()/algorithm_original.final_signatures_active.size();
-        float false_positive = inactive_active.size()/algorithm_original.final_signatures_inactive.size();
-        float inactive = inactive_inactive.size()/algorithm_original.final_signatures_inactive.size();
+        it = algorithm_trained.inactive.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry pair = (Map.Entry)it.next();
+            if (algorithm_original.active.containsKey(pair.getKey())) {
+                inactive_active.put((String)pair.getKey(), (String)pair.getValue());
+                ++false_negative;
+            }
+            if (algorithm_original.inactive.containsKey(pair.getKey())) {
+                inactive_inactive.put((String)pair.getKey(), (String)pair.getValue());
+                ++inactive;
+            }
+        }
+        //float active = (float)active_active.size()/(float)algorithm_original.final_signatures_active.size();
+        //float false_negative = (float)active_inactive.size()/(float)algorithm_original.final_signatures_active.size();
+        //float false_positive = (float)inactive_active.size()/(float)algorithm_original.final_signatures_inactive.size();
+        //float inactive = (float)inactive_inactive.size()/(float)algorithm_original.final_signatures_inactive.size();
+        System.out.println(active);
+        System.out.println(false_negative);
+        System.out.println(false_positive);
+        System.out.println(inactive);
     }
     void run() throws FileNotFoundException, UnsupportedEncodingException, CDKException{
         algorithm_original.run("");

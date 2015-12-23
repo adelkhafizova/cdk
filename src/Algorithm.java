@@ -31,6 +31,8 @@ public class Algorithm {
         this.pi = 3.1415926535897932384;
         this.final_signatures_active = new HashMap<String, String>();
         this.final_signatures_inactive = new HashMap<String, String>();
+        this.active = new HashMap<String, String>();
+        this.inactive = new HashMap<String, String>();
         this.heights_active = new HashMap<String, Integer>();
         this.heights_inactive = new HashMap<String, Integer>();
         this.data_num = 0;
@@ -164,6 +166,7 @@ public class Algorithm {
                         String as_string = substructure.getKey();
                         String InChi = atom_signature_to_inchi(as_string);
                         final_signatures_active.put(as_string, InChi);
+                        active.put(InChi, as_string);
                         heights_active.put(as_string, height);
                     }
                 }
@@ -185,6 +188,7 @@ public class Algorithm {
                         String as_string = substructure.getKey();
                         String InChi = atom_signature_to_inchi(as_string);
                         final_signatures_inactive.put(as_string, InChi);
+                        inactive.put(InChi, as_string);
                         heights_inactive.put(as_string, height);
                     }
                 }
@@ -217,10 +221,14 @@ public class Algorithm {
             writer.println(substructure.getKey() + ' ' + substructure.getValue());
         }
         writer.close();
+        System.out.println(final_signatures_active.size());
+        System.out.println(final_signatures_inactive.size());
+        System.out.println(active.size());
+        System.out.println(inactive.size());
     }
 
     void run(String path) throws FileNotFoundException, UnsupportedEncodingException, CDKException {
-        for (int height = 0; height < 15; height++) { //then redo while there are interesting substructures
+        for (int height = 0; height < 20; height++) { //then redo while there are interesting substructures
             Map<String, Signature_state> current_signatures = new HashMap<String, Signature_state>();
             Map<String, String> signature_to_inchi = new HashMap<String, String>();
             find_substructures_with_height(current_signatures, signature_to_inchi, height);
@@ -240,18 +248,24 @@ public class Algorithm {
     ArrayList<ArrayList<Boolean>> atom_states;
     HashMap<String, String> final_signatures_active;
     HashMap<String, String> final_signatures_inactive;
+    HashMap<String, String> active;
+    HashMap<String, String> inactive;
     HashMap<String, Integer> heights_active;
     HashMap<String, Integer> heights_inactive;
 
     public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException, CDKException,
             IOException {
-        Algorithm a = new Algorithm(0.05, 5, 0.8);
-        a.data_initialization("pubchem_cyp1a2_train.sdf", "Inhibitor", "Noninhibitor");
-        a.run("");
-        Classification classifier;
-        classifier = new Classification();
-        classifier.data_initialization("");
-        classifier.classify_data("pubchem_cyp1a2_test.sdf");
+        //Algorithm a = new Algorithm(0.05, 5, 0.8);
+        //a.data_initialization("pubchem_cyp1a2_train.sdf", "Inhibitor", "Noninhibitor");
+        //a.run("");
+        Observer observer = new Observer("pubchem_cyp1a2_train.sdf", "pubchem_cyp1a2_test.sdf");
+        observer.initialize_algorithms(0.05, 5, 0.8);
+        observer.run();
+        observer.analyze();
+        //Classification classifier;
+        //classifier = new Classification();
+        //classifier.data_initialization("");
+        //classifier.classify_data("pubchem_cyp1a2_test.sdf");
         //a.classify_data("final_signatures_active.txt", "final_signatures_inactive.txt", "test_mol_for_class.sdf");
     }
 }
