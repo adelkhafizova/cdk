@@ -4,10 +4,12 @@ import java.awt.image.BufferedImage;
 import java.awt.image.RenderedImage;
 import java.io.*;
 //import java.math.BigInteger;
+import java.math.BigInteger;
 import java.util.*;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
+import com.google.common.math.BigIntegerMath;
 import org.openscience.cdk.DefaultChemObjectBuilder;
 import org.openscience.cdk.Molecule;
 import org.openscience.cdk.exception.IncorrectUseOfCDKCoreClassError;
@@ -34,6 +36,7 @@ import org.openscience.cdk.smiles.SmilesGenerator;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.smiles.SmilesGenerator;
 import org.openscience.cdk.io.SDFWriter;
+import org.openscience.cdk.tools.SystemOutLoggingTool;
 
 import javax.imageio.ImageIO;
 //import com.google.common.math.BigIntegerMath;
@@ -197,25 +200,34 @@ public class Algorithm {
                 double m_ = substructure.getValue().m_dash;
                 if (current_frequency > substructure_frequency) {
                     double current_p_value_active = 0;
+                    Double true_p_value = 0.0;
                     for (double k = m_; k < n_; k++) {
                         if (n_ - k == 0 || k == 0 || data_num == 0) {
                             System.out.println(n_ - k + ' ' + k + ' ' + data_num);
                         }
                         current_p_value_active += Math.pow(n_ / (2 * pi * (n_ - k) * k), 0.5) * Math.pow(active_num / k, k) *
                                 Math.pow((data_num - active_num) / (n_ - k), n_ - k) * Math.pow(n_ / data_num, n_);
-                        //BigInteger coef = BigIntegerMath.binomial((int) n_, (int) k);
-                        //true_p_value += (coef.doubleValue() * Math.pow(active_num, k)) / Math.pow(data_num, k) *
-                        //        Math.pow((data_num - active_num), n_ - k) / Math.pow(data_num, n_ - k);
+                        BigInteger coef = BigIntegerMath.binomial((int) n_, (int) k);
+                        true_p_value += coef.doubleValue() * Math.pow(new Double(active_num)/data_num, k) *
+                                Math.pow(new Double(data_num - active_num)/data_num, n_ - k);
+                        //System.out.println(Math.pow(new Double(active_num)/data_num, k));
+                        //System.out.println(new Double(active_num)/data_num);
+                        //System.out.println(k);
                     }
-                    current_p_value_active += Math.pow(active_num / data_num, n_);
-                    if (current_p_value_active < p_value_threshold) {
+                    //current_p_value_active += Math.pow(active_num / data_num, n_);
+                    true_p_value += Math.pow(new Double(active_num) / data_num, n_);
+                    System.out.println(Math.pow(new Double(active_num) / data_num, n_));
+                    System.out.println("True" + true_p_value.toString());
+                    if (true_p_value < p_value_threshold) {
+                    //if (current_p_value_active < p_value_threshold) {
                         for (Signature_position sp : substructure.getValue().met_positions) {
                             atom_states.get(sp.molecule_number).set(sp.atom_number, true);
                         }
 
                         String as_string = substructure.getKey();
                         String InChi = atom_signature_to_inchi(as_string);
-                        final_signatures_active.put(InChi, current_p_value_active);
+                        final_signatures_active.put(InChi, true_p_value);
+                        //final_signatures_active.put(InChi, current_p_value_active);
                         active.put(InChi, as_string);
                         heights_active.put(as_string, height);
                     }
@@ -224,7 +236,8 @@ public class Algorithm {
                             String as_string = substructure.getKey();
                             String InChi = atom_signature_to_inchi(as_string);
                             if (prev_active.containsKey(InChi)) {
-                                int_active.put(InChi, new p_value_pair(prev_active.get(InChi), current_p_value_active));
+                                //int_active.put(InChi, new p_value_pair(prev_active.get(InChi), current_p_value_active));
+                                int_active.put(InChi, new p_value_pair(prev_active.get(InChi), true_p_value));
                         }
                         }
                     }
