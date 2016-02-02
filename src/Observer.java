@@ -19,9 +19,12 @@ public class Observer {
         trained_data_file = trained;
     }
     void initialize_algorithms(double p_value_threshold, int minimum_occurrence, double substructure_frequency) {
-        algorithm_original = new Algorithm(p_value_threshold, minimum_occurrence, substructure_frequency);
+        algorithm_original = new Algorithm(p_value_threshold, minimum_occurrence, substructure_frequency,
+                                           new HashMap<String, Double>(), new HashMap<String, Double>());
         algorithm_original.data_initialization(original_data_file, "active", "inactive");
-        algorithm_trained = new Algorithm(p_value_threshold, minimum_occurrence, substructure_frequency);
+        algorithm_trained = new Algorithm(p_value_threshold, minimum_occurrence, substructure_frequency,
+                                          algorithm_original.final_signatures_active,
+                                          algorithm_original.final_signatures_inactive);
         algorithm_trained.data_initialization(trained_data_file, "active", "inactive");
     }
     void analyze() {
@@ -66,7 +69,7 @@ public class Observer {
         System.out.println(false_positive);
         System.out.println(inactive);
     }
-    void run() throws FileNotFoundException, UnsupportedEncodingException, CDKException{
+    void run() throws Exception {
         algorithm_original.run("");
         algorithm_trained.run("");
     }
