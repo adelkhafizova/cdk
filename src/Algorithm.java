@@ -5,11 +5,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Iterator;
+import java.util.concurrent.ExecutionException;
 
 import org.openscience.cdk.DefaultChemObjectBuilder;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.interfaces.IChemObjectBuilder;
 import org.openscience.cdk.interfaces.IMolecule;
+import org.openscience.cdk.io.formats.SybylDescriptorFormat;
 import org.openscience.cdk.io.iterator.IteratingMDLReader;
 import org.openscience.cdk.signature.AtomSignature;
 import org.openscience.cdk.signature.MoleculeSignature;
@@ -46,25 +48,35 @@ public class Algorithm {
             int inactive_num = 0;
             while (reader.hasNext()) {
                 IMolecule molecule = (IMolecule) reader.next();
-                molecule_data.add(molecule);
-                ArrayList<Boolean> atom_states_local = new ArrayList<Boolean>(molecule.getAtomCount());
-                for (int t = 0; t < molecule.getAtomCount(); t++) {
-                    atom_states_local.add(false);
-                }
-                atom_states.add(atom_states_local);
-                data_num++;
                 String properties = molecule.getProperties().values().toString();
                 if (properties.contains(inactivity_name)) {
                     activity_data.add(false);
                     ++inactive_num;
+                    molecule_data.add(molecule);
+                    ArrayList<Boolean> atom_states_local = new ArrayList<Boolean>(molecule.getAtomCount());
+                    for (int t = 0; t < molecule.getAtomCount(); t++) {
+                        atom_states_local.add(false);
+                    }
+                    atom_states.add(atom_states_local);
+                    data_num++;
                 } else {
                     if (properties.contains(activity_name)) {
                         activity_data.add(true);
                         ++active_num;
+                        molecule_data.add(molecule);
+                        ArrayList<Boolean> atom_states_local = new ArrayList<Boolean>(molecule.getAtomCount());
+                        for (int t = 0; t < molecule.getAtomCount(); t++) {
+                            atom_states_local.add(false);
+                        }
+                        atom_states.add(atom_states_local);
+                        data_num++;
                     }
                 }
             }
             if (active_num + inactive_num != molecule_data.size()) {
+                System.err.println(active_num);
+                System.err.println(inactive_num);
+                System.err.println(molecule_data.size());
                 throw new Exception("Invalid data, not all molecules have activity value");
             }
             //here fill molecule_data, activity_data and allocate memory for atom states and fill it with 0
@@ -258,7 +270,7 @@ public class Algorithm {
         //Algorithm a = new Algorithm(0.05, 5, 0.8);
         //a.data_initialization("pubchem_cyp1a2_train.sdf", "Inhibitor", "Noninhibitor");
         //a.run("");
-        Observer observer = new Observer("pubchem_cyp1a2_train.sdf", "pubchem_cyp1a2_test.sdf");
+        Observer observer = new Observer("ames_levenberg_experimental.sdf", "ames_levenberg_predicted.sdf");
         observer.initialize_algorithms(0.05, 5, 0.8);
         observer.run();
         observer.analyze();

@@ -20,9 +20,9 @@ public class Observer {
     }
     void initialize_algorithms(double p_value_threshold, int minimum_occurrence, double substructure_frequency) {
         algorithm_original = new Algorithm(p_value_threshold, minimum_occurrence, substructure_frequency);
-        algorithm_original.data_initialization(original_data_file, "Inhibitor", "Noninhibitor");
+        algorithm_original.data_initialization(original_data_file, "active", "inactive");
         algorithm_trained = new Algorithm(p_value_threshold, minimum_occurrence, substructure_frequency);
-        algorithm_trained.data_initialization(trained_data_file, "Inhibitor", "Noninhibitor");
+        algorithm_trained.data_initialization(trained_data_file, "active", "inactive");
     }
     void analyze() {
         active_active = new HashMap<String, String>();
