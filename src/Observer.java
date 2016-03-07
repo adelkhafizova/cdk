@@ -38,6 +38,11 @@ public class Observer {
         HashSet<String> inactive_became_active = new HashSet<String>();
         HashSet<String> inactive_became_insignificant = new HashSet<String>();
         Iterator it = algorithm_trained.active.entrySet().iterator();
+        HashMap<String, Integer> plus_plus = new HashMap<String, Integer>();
+        HashMap<String, Integer> plus_minus = new HashMap<String, Integer>();
+        HashMap<String, Integer> minus_minus = new HashMap<String, Integer>();
+        HashMap<String, Integer> minus_minus = new HashMap<String, Integer>();
+        HashMap<String, Integer>
         float active = 0;
         float false_negative = 0;
         float false_positive = 0;
