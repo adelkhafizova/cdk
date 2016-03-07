@@ -203,7 +203,7 @@ public class Algorithm {
                     Double true_p_value = 0.0;
                     for (double k = m_; k < n_; k++) {
                         if (n_ - k == 0 || k == 0 || data_num == 0) {
-                            System.out.println(n_ - k + ' ' + k + ' ' + data_num);
+                            // System.out.println(n_ - k + ' ' + k + ' ' + data_num);
                         }
                         current_p_value_active += Math.pow(n_ / (2 * pi * (n_ - k) * k), 0.5) * Math.pow(active_num / k, k) *
                                 Math.pow((data_num - active_num) / (n_ - k), n_ - k) * Math.pow(n_ / data_num, n_);
@@ -216,8 +216,8 @@ public class Algorithm {
                     }
                     //current_p_value_active += Math.pow(active_num / data_num, n_);
                     true_p_value += Math.pow(new Double(active_num) / data_num, n_);
-                    System.out.println(Math.pow(new Double(active_num) / data_num, n_));
-                    System.out.println("True" + true_p_value.toString());
+                    //System.out.println(Math.pow(new Double(active_num) / data_num, n_));
+                    //System.out.println("True" + true_p_value.toString());
                     if (true_p_value < p_value_threshold) {
                     //if (current_p_value_active < p_value_threshold) {
                         for (Signature_position sp : substructure.getValue().met_positions) {

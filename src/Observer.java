@@ -1,17 +1,16 @@
 import org.openscience.cdk.DefaultChemObjectBuilder;
+import org.openscience.cdk.Molecule;
 import org.openscience.cdk.exception.CDKException;
+import org.openscience.cdk.inchi.InChIGeneratorFactory;
+import org.openscience.cdk.inchi.InChIToStructure;
+import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.interfaces.IMolecule;
 import org.openscience.cdk.io.iterator.IteratingMDLReader;
+import org.openscience.cdk.smiles.SmilesGenerator;
 import org.openscience.cdk.tools.SystemOutLoggingTool;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
-import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.Map;
+import java.io.*;
+import java.util.*;
 
 public class Observer {
     Observer(String original, String trained) {
@@ -27,11 +26,17 @@ public class Observer {
                                           algorithm_original.final_signatures_inactive);
         algorithm_trained.data_initialization(trained_data_file, "active", "inactive");
     }
-    void analyze() {
+    void analyze() throws FileNotFoundException, UnsupportedEncodingException, CDKException {
         active_active = new HashMap<String, String>();
         active_inactive = new HashMap<String, String>();
         inactive_active = new HashMap<String, String>();
         inactive_inactive = new HashMap<String, String>();
+        HashSet<String> active_remained_active = new HashSet<String>();
+        HashSet<String> active_became_inactive = new HashSet<String>();
+        HashSet<String> active_became_insignificant = new HashSet<String>();
+        HashSet<String> inactive_remained_inactive = new HashSet<String>();
+        HashSet<String> inactive_became_active = new HashSet<String>();
+        HashSet<String> inactive_became_insignificant = new HashSet<String>();
         Iterator it = algorithm_trained.active.entrySet().iterator();
         float active = 0;
         float false_negative = 0;
@@ -60,6 +65,42 @@ public class Observer {
                 ++inactive;
             }
         }
+        it = algorithm_original.active.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry pair = (Map.Entry)it.next();
+            if (algorithm_trained.active.containsKey(pair.getKey())) {
+                active_remained_active.add((String) pair.getKey());
+            }
+            else {
+                if (algorithm_trained.inactive.containsKey(pair.getKey())) {
+                    active_became_inactive.add((String) pair.getKey());
+                } else {
+                    active_became_insignificant.add((String)pair.getKey());
+                }
+            }
+        }
+        it = algorithm_original.inactive.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry pair = (Map.Entry)it.next();
+            if (algorithm_trained.inactive.containsKey(pair.getKey())) {
+                inactive_remained_inactive.add((String) pair.getKey());
+            }
+            else {
+                if (algorithm_trained.active.containsKey(pair.getKey())) {
+                    inactive_became_active.add((String) pair.getKey());
+                } else {
+                    inactive_became_insignificant.add((String)pair.getKey());
+                }
+            }
+        }
+        PrintWriter writer = new PrintWriter("categorized_signatures.txt", "UTF-8");
+        print_set(active_remained_active, 0, writer);
+        print_set(active_became_inactive, 1, writer);
+        print_set(active_became_insignificant, 2, writer);
+        print_set(inactive_remained_inactive, 3, writer);
+        print_set(inactive_became_active, 4, writer);
+        print_set(inactive_became_insignificant, 5, writer);
+        writer.close();
         //float active = (float)active_active.size()/(float)algorithm_original.final_signatures_active.size();
         //float false_negative = (float)active_inactive.size()/(float)algorithm_original.final_signatures_active.size();
         //float false_positive = (float)inactive_active.size()/(float)algorithm_original.final_signatures_inactive.size();
@@ -68,6 +109,23 @@ public class Observer {
         System.out.println(false_negative);
         System.out.println(false_positive);
         System.out.println(inactive);
+    }
+    void print_set(HashSet<String> molecules, Integer category, PrintWriter writer) throws CDKException {
+        Iterator<String> it = molecules.iterator();
+        while (it.hasNext()) {
+            InChIGeneratorFactory factory = InChIGeneratorFactory.getInstance();
+            InChIToStructure intostruct = factory.getInChIToStructure(
+                    it.next().toString(), DefaultChemObjectBuilder.getInstance()
+            );
+
+            IAtomContainer container = intostruct.getAtomContainer();
+
+            IMolecule molecule = new Molecule(container);
+
+            SmilesGenerator sg = new SmilesGenerator();
+            String smiles = sg.createSMILES(molecule);
+            writer.println(smiles + '\t' + category.toString());
+        }
     }
     void run() throws Exception {
         algorithm_original.run("");
