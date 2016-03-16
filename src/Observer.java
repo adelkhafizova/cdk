@@ -34,15 +34,15 @@ public class Observer {
         HashSet<String> active_remained_active = new HashSet<String>();
         HashSet<String> active_became_inactive = new HashSet<String>();
         HashSet<String> active_became_insignificant = new HashSet<String>();
+        HashSet<String> insignificant_became_active = new HashSet<String>();
         HashSet<String> inactive_remained_inactive = new HashSet<String>();
         HashSet<String> inactive_became_active = new HashSet<String>();
-        HashSet<String> inactive_became_insignificant = new HashSet<String>();
+        HashSet<String> insignificant_became_inactive = new HashSet<String>();
         Iterator it = algorithm_trained.active.entrySet().iterator();
         HashMap<String, Integer> plus_plus = new HashMap<String, Integer>();
         HashMap<String, Integer> plus_minus = new HashMap<String, Integer>();
         HashMap<String, Integer> minus_minus = new HashMap<String, Integer>();
         HashMap<String, Integer> minus_minus = new HashMap<String, Integer>();
-        HashMap<String, Integer>
         float active = 0;
         float false_negative = 0;
         float false_positive = 0;
@@ -98,6 +98,20 @@ public class Observer {
                 }
             }
         }
+        it = algorithm_trained.active.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry pair = (Map.Entry)it.next();
+            if (algorithm_original.active.containsKey(pair.getKey()) == False and algorithm_original.inactive.containsKey(pair.getKey())) {
+                insignificant_became_active.add((String) pair.getKey());
+            }
+        }
+        it = algorithm_trained.inactive.entrySet().iterator();
+        while (it.hasNext()) {
+            Map.Entry pair = (Map.Entry)it.next();
+            if (algorithm_original.active.containsKey(pair.getKey()) == False and algorithm_original.inactive.containsKey(pair.getKey())) {
+                insignificant_became_inactive.add((String) pair.getKey());
+            }
+        }
         PrintWriter writer = new PrintWriter("categorized_signatures.txt", "UTF-8");
         print_set(active_remained_active, 0, writer);
         print_set(active_became_inactive, 1, writer);
@@ -105,6 +119,8 @@ public class Observer {
         print_set(inactive_remained_inactive, 3, writer);
         print_set(inactive_became_active, 4, writer);
         print_set(inactive_became_insignificant, 5, writer);
+        print_set(insignificant_became_active, 6, writer);
+        print_set(insignificant_became_inactive, 7, writer);
         writer.close();
         //float active = (float)active_active.size()/(float)algorithm_original.final_signatures_active.size();
         //float false_negative = (float)active_inactive.size()/(float)algorithm_original.final_signatures_active.size();
