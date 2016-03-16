@@ -5,6 +5,7 @@ import org.openscience.cdk.inchi.InChIGeneratorFactory;
 import org.openscience.cdk.inchi.InChIToStructure;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.interfaces.IMolecule;
+import org.openscience.cdk.io.SDFWriter;
 import org.openscience.cdk.io.iterator.IteratingMDLReader;
 import org.openscience.cdk.smiles.SmilesGenerator;
 import org.openscience.cdk.tools.SystemOutLoggingTool;
@@ -13,20 +14,22 @@ import java.io.*;
 import java.util.*;
 
 public class Observer {
-    Observer(String original, String trained) {
+    Observer(String original, String trained, String active, String inactive) {
         original_data_file = original;
         trained_data_file = trained;
+        active_class = active;
+        inactive_class = inactive;
     }
     void initialize_algorithms(double p_value_threshold, int minimum_occurrence, double substructure_frequency) {
         algorithm_original = new Algorithm(p_value_threshold, minimum_occurrence, substructure_frequency,
                                            new HashMap<String, Double>(), new HashMap<String, Double>());
-        algorithm_original.data_initialization(original_data_file, "active", "inactive");
+        algorithm_original.data_initialization(original_data_file, active_class, inactive_class);
         algorithm_trained = new Algorithm(p_value_threshold, minimum_occurrence, substructure_frequency,
                                           algorithm_original.final_signatures_active,
                                           algorithm_original.final_signatures_inactive);
-        algorithm_trained.data_initialization(trained_data_file, "active", "inactive");
+        algorithm_trained.data_initialization(trained_data_file, active_class, inactive_class);
     }
-    void analyze() throws FileNotFoundException, UnsupportedEncodingException, CDKException {
+    void analyze() throws IOException, CDKException {
         active_active = new HashMap<String, String>();
         active_inactive = new HashMap<String, String>();
         inactive_active = new HashMap<String, String>();
@@ -113,15 +116,18 @@ public class Observer {
             }
         }
         PrintWriter writer = new PrintWriter("categorized_signatures.txt", "UTF-8");
-        print_set(active_remained_active, 0, writer);
-        print_set(active_became_inactive, 1, writer);
-        print_set(active_became_insignificant, 2, writer);
-        print_set(inactive_remained_inactive, 3, writer);
-        print_set(inactive_became_active, 4, writer);
-        print_set(inactive_became_insignificant, 5, writer);
+        File output = new File("categories.sdf");
+        SDFWriter sdf_writer = new SDFWriter(new FileWriter(output));
+        print_set(active_remained_active, 0, writer, sdf_writer);
+        print_set(active_became_inactive, 1, writer, sdf_writer);
+        print_set(active_became_insignificant, 2, writer, sdf_writer);
+        print_set(inactive_remained_inactive, 3, writer, sdf_writer);
+        print_set(inactive_became_active, 4, writer, sdf_writer);
+        print_set(inactive_became_insignificant, 5, writer, sdf_writer);
         print_set(insignificant_became_active, 6, writer);
         print_set(insignificant_became_inactive, 7, writer);
         writer.close();
+        sdf_writer.close();
         //float active = (float)active_active.size()/(float)algorithm_original.final_signatures_active.size();
         //float false_negative = (float)active_inactive.size()/(float)algorithm_original.final_signatures_active.size();
         //float false_positive = (float)inactive_active.size()/(float)algorithm_original.final_signatures_inactive.size();
@@ -131,7 +137,7 @@ public class Observer {
         System.out.println(false_positive);
         System.out.println(inactive);
     }
-    void print_set(HashSet<String> molecules, Integer category, PrintWriter writer) throws CDKException {
+    void print_set(HashSet<String> molecules, Integer category, PrintWriter writer, SDFWriter sdfwriter) throws CDKException {
         Iterator<String> it = molecules.iterator();
         while (it.hasNext()) {
             InChIGeneratorFactory factory = InChIGeneratorFactory.getInstance();
@@ -142,7 +148,8 @@ public class Observer {
             IAtomContainer container = intostruct.getAtomContainer();
 
             IMolecule molecule = new Molecule(container);
-
+            molecule.setProperty("Category", category.toString());
+            sdfwriter.write(molecule);
             SmilesGenerator sg = new SmilesGenerator();
             String smiles = sg.createSMILES(molecule);
             writer.println(smiles + '\t' + category.toString());
@@ -156,6 +163,8 @@ public class Observer {
     Algorithm algorithm_trained;
     String original_data_file;
     String trained_data_file;
+    String active_class;
+    String inactive_class;
     HashMap<String, String> active_active; //active originally and active in trained
     HashMap<String, String> active_inactive; //active originally but inactive in trained
     HashMap<String, String> inactive_inactive; // inactive originally and inactive in trained

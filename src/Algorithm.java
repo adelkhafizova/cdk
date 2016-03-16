@@ -54,7 +54,6 @@ class p_value_pair {
     }
 }
 
-
 public class Algorithm {
     Algorithm(double p_value_threshold, int minimum_occurrence, double substructure_frequency,
               HashMap<String, Double> ex_active, HashMap<String, Double> ex_inactive) {
@@ -329,8 +328,8 @@ public class Algorithm {
         g.dispose();
 
         // write to file
-        File file = new File("images", name + ".png");
-        ImageIO.write((RenderedImage)image, "PNG", file);
+        //File file = new File("images", name + ".png");
+        //ImageIO.write((RenderedImage)image, "PNG", file);
         return name;
     }
 
@@ -378,11 +377,12 @@ public class Algorithm {
     }
 
     void run(String path) throws Exception {
-        for (int height = 0; height < 20; height++) { //then redo while there are interesting substructures
+        for (Integer height = 0; height < 20; height++) { //then redo while there are interesting substructures
             Map<String, Signature_state> current_signatures = new HashMap<String, Signature_state>();
             Map<String, String> signature_to_inchi = new HashMap<String, String>();
             find_substructures_with_height(current_signatures, signature_to_inchi, height);
             process_signatures(current_signatures, height);
+            System.out.println("Processed " + height.toString() + " height");
         }
         dump_data(path);
     }
@@ -413,11 +413,15 @@ public class Algorithm {
         //Algorithm a = new Algorithm(0.05, 5, 0.8);
         //a.data_initialization("pubchem_cyp1a2_train.sdf", "Inhibitor", "Noninhibitor");
         //a.run("");
-        Observer observer = new Observer("ames_levenberg_experimental.sdf", "ames_levenberg_predicted.sdf");
-        observer.initialize_algorithms(0.05, 5, 0.8);
+        Observer observer = new Observer(args[0], args[1], args[2], args[3]);
+        observer.initialize_algorithms(Double.parseDouble(args[4]), Integer.parseInt(args[5]),
+                                       Double.parseDouble(args[6]));
+        //Observer observer = new Observer("ames_levenberg_experimental.sdf", "ames_levenberg_predicted.sdf");
+        //observer.initialize_algorithms(0.05, 5, 0.8);
         try {
             observer.run();
         } catch (Exception e) {
+            System.out.println("Error!");
             e.printStackTrace();
         }
         observer.analyze();
