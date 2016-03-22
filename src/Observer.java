@@ -14,22 +14,23 @@ import java.io.*;
 import java.util.*;
 
 public class Observer {
-    Observer(String original, String trained, String active, String inactive) {
+    Observer(String original, String trained, String activity_name, String inactivity_name) {
         original_data_file = original;
         trained_data_file = trained;
-        active_class = active;
-        inactive_class = inactive;
+        this.activity_name = activity_name;
+        this.inactivity_name = inactivity_name;
     }
     void initialize_algorithms(double p_value_threshold, int minimum_occurrence, double substructure_frequency) {
         algorithm_original = new Algorithm(p_value_threshold, minimum_occurrence, substructure_frequency,
-                                           new HashMap<String, Double>(), new HashMap<String, Double>());
-        algorithm_original.data_initialization(original_data_file, active_class, inactive_class);
+                new HashMap<String, Double>(), new HashMap<String, Double>(), true);
+        algorithm_original.data_initialization(original_data_file, activity_name, inactivity_name);
         algorithm_trained = new Algorithm(p_value_threshold, minimum_occurrence, substructure_frequency,
-                                          algorithm_original.final_signatures_active,
-                                          algorithm_original.final_signatures_inactive);
-        algorithm_trained.data_initialization(trained_data_file, active_class, inactive_class);
+                algorithm_original.final_signatures_active,
+                algorithm_original.final_signatures_inactive, false);
+        algorithm_trained.data_initialization(trained_data_file, activity_name, inactivity_name);
     }
-    void analyze() throws IOException, CDKException {
+
+    void analyze(Map<String, Algorithm.SignatureInfo> table) throws IOException, CDKException {
         active_active = new HashMap<String, String>();
         active_inactive = new HashMap<String, String>();
         inactive_active = new HashMap<String, String>();
@@ -40,92 +41,92 @@ public class Observer {
         HashSet<String> insignificant_became_active = new HashSet<String>();
         HashSet<String> inactive_remained_inactive = new HashSet<String>();
         HashSet<String> inactive_became_active = new HashSet<String>();
+        HashSet<String> inactive_became_insignificant = new HashSet<String>();
         HashSet<String> insignificant_became_inactive = new HashSet<String>();
         Iterator it = algorithm_trained.active.entrySet().iterator();
         HashMap<String, Integer> plus_plus = new HashMap<String, Integer>();
         HashMap<String, Integer> plus_minus = new HashMap<String, Integer>();
         HashMap<String, Integer> minus_minus = new HashMap<String, Integer>();
-        HashMap<String, Integer> minus_minus = new HashMap<String, Integer>();
+        HashMap<String, Integer> minus_plus = new HashMap<String, Integer>();
         float active = 0;
         float false_negative = 0;
         float false_positive = 0;
         float inactive = 0;
         while (it.hasNext()) {
-            Map.Entry pair = (Map.Entry)it.next();
+            Map.Entry pair = (Map.Entry) it.next();
             if (algorithm_original.active.containsKey(pair.getKey())) {
                 active_active.put((String) pair.getKey(), (String) pair.getValue());
                 ++active;
             }
             if (algorithm_original.inactive.containsKey(pair.getKey())) {
-                active_inactive.put((String)pair.getKey(), (String)pair.getValue());
+                active_inactive.put((String) pair.getKey(), (String) pair.getValue());
                 ++false_positive;
             }
         }
         it = algorithm_trained.inactive.entrySet().iterator();
         while (it.hasNext()) {
-            Map.Entry pair = (Map.Entry)it.next();
+            Map.Entry pair = (Map.Entry) it.next();
             if (algorithm_original.active.containsKey(pair.getKey())) {
-                inactive_active.put((String)pair.getKey(), (String)pair.getValue());
+                inactive_active.put((String) pair.getKey(), (String) pair.getValue());
                 ++false_negative;
             }
             if (algorithm_original.inactive.containsKey(pair.getKey())) {
-                inactive_inactive.put((String)pair.getKey(), (String)pair.getValue());
+                inactive_inactive.put((String) pair.getKey(), (String) pair.getValue());
                 ++inactive;
             }
         }
         it = algorithm_original.active.entrySet().iterator();
         while (it.hasNext()) {
-            Map.Entry pair = (Map.Entry)it.next();
+            Map.Entry pair = (Map.Entry) it.next();
             if (algorithm_trained.active.containsKey(pair.getKey())) {
                 active_remained_active.add((String) pair.getKey());
-            }
-            else {
+            } else {
                 if (algorithm_trained.inactive.containsKey(pair.getKey())) {
                     active_became_inactive.add((String) pair.getKey());
                 } else {
-                    active_became_insignificant.add((String)pair.getKey());
+                    active_became_insignificant.add((String) pair.getKey());
                 }
             }
         }
         it = algorithm_original.inactive.entrySet().iterator();
         while (it.hasNext()) {
-            Map.Entry pair = (Map.Entry)it.next();
+            Map.Entry pair = (Map.Entry) it.next();
             if (algorithm_trained.inactive.containsKey(pair.getKey())) {
                 inactive_remained_inactive.add((String) pair.getKey());
-            }
-            else {
+            } else {
                 if (algorithm_trained.active.containsKey(pair.getKey())) {
                     inactive_became_active.add((String) pair.getKey());
                 } else {
-                    inactive_became_insignificant.add((String)pair.getKey());
+                    inactive_became_insignificant.add((String) pair.getKey());
                 }
             }
         }
         it = algorithm_trained.active.entrySet().iterator();
         while (it.hasNext()) {
-            Map.Entry pair = (Map.Entry)it.next();
-            if (algorithm_original.active.containsKey(pair.getKey()) == False and algorithm_original.inactive.containsKey(pair.getKey())) {
+            Map.Entry pair = (Map.Entry) it.next();
+            if (algorithm_original.active.containsKey(pair.getKey()) == false && algorithm_original.inactive.containsKey(pair.getKey())){
                 insignificant_became_active.add((String) pair.getKey());
             }
         }
         it = algorithm_trained.inactive.entrySet().iterator();
         while (it.hasNext()) {
-            Map.Entry pair = (Map.Entry)it.next();
-            if (algorithm_original.active.containsKey(pair.getKey()) == False and algorithm_original.inactive.containsKey(pair.getKey())) {
+            Map.Entry pair = (Map.Entry) it.next();
+            if (algorithm_original.active.containsKey(pair.getKey()) == false && algorithm_original.inactive.containsKey(pair.getKey())){
                 insignificant_became_inactive.add((String) pair.getKey());
             }
         }
         PrintWriter writer = new PrintWriter("categorized_signatures.txt", "UTF-8");
         File output = new File("categories.sdf");
         SDFWriter sdf_writer = new SDFWriter(new FileWriter(output));
-        print_set(active_remained_active, 0, writer, sdf_writer);
-        print_set(active_became_inactive, 1, writer, sdf_writer);
-        print_set(active_became_insignificant, 2, writer, sdf_writer);
-        print_set(inactive_remained_inactive, 3, writer, sdf_writer);
-        print_set(inactive_became_active, 4, writer, sdf_writer);
-        print_set(inactive_became_insignificant, 5, writer, sdf_writer);
-        print_set(insignificant_became_active, 6, writer);
-        print_set(insignificant_became_inactive, 7, writer);
+        print_set(active_remained_active, 0, writer, sdf_writer, table);
+        print_set(active_became_inactive, 1, writer, sdf_writer, table);
+        print_set(active_became_insignificant, 2, writer, sdf_writer, table);
+        print_set(inactive_remained_inactive, 3, writer, sdf_writer, table);
+        print_set(inactive_became_active, 4, writer, sdf_writer, table);
+        print_set(inactive_became_insignificant, 5, writer, sdf_writer, table);
+        print_set(insignificant_became_active, 6, writer, sdf_writer, table);
+        print_set(insignificant_became_inactive, 7, writer, sdf_writer, table);
+        print_table(table);
         writer.close();
         sdf_writer.close();
         //float active = (float)active_active.size()/(float)algorithm_original.final_signatures_active.size();
@@ -137,12 +138,15 @@ public class Observer {
         System.out.println(false_positive);
         System.out.println(inactive);
     }
-    void print_set(HashSet<String> molecules, Integer category, PrintWriter writer, SDFWriter sdfwriter) throws CDKException {
+
+    void print_set(HashSet<String> molecules, Integer category, PrintWriter writer, SDFWriter sdfwriter, Map<String, Algorithm.SignatureInfo> table) throws CDKException {
         Iterator<String> it = molecules.iterator();
         while (it.hasNext()) {
             InChIGeneratorFactory factory = InChIGeneratorFactory.getInstance();
+            String current_inchi = it.next().toString();
+            table.get(current_inchi).fill_category(category);
             InChIToStructure intostruct = factory.getInChIToStructure(
-                    it.next().toString(), DefaultChemObjectBuilder.getInstance()
+                    current_inchi, DefaultChemObjectBuilder.getInstance()
             );
 
             IAtomContainer container = intostruct.getAtomContainer();
@@ -152,19 +156,62 @@ public class Observer {
             sdfwriter.write(molecule);
             SmilesGenerator sg = new SmilesGenerator();
             String smiles = sg.createSMILES(molecule);
+            table.get(current_inchi).fill_smiles(smiles);
             writer.println(smiles + '\t' + category.toString());
         }
     }
-    void run() throws Exception {
-        algorithm_original.run("");
-        algorithm_trained.run("");
+
+    void print_table(Map<String, Algorithm.SignatureInfo> table) throws FileNotFoundException, UnsupportedEncodingException {
+        Iterator it = table.entrySet().iterator();
+        PrintWriter writer = new PrintWriter("statistics.csv", "UTF-8");
+        writer.print("Smiles");
+        writer.print("\t");
+        writer.print("p_value_original");
+        writer.print("\t");
+        writer.print("p_value_trained");
+        writer.print("\t");
+        writer.print("active_entry_original");
+        writer.print("\t");
+        writer.print("inactive_entry_original");
+        writer.print("\t");
+        writer.print("active_entry_trained");
+        writer.print("\t");
+        writer.print("inactive_entry_trained");
+        writer.print("\t");
+        writer.print("category");
+        writer.print("\n");
+        while (it.hasNext()) {
+            Map.Entry<String, Algorithm.SignatureInfo> next_entry = (Map.Entry<String, Algorithm.SignatureInfo>)it.next();
+            writer.print(next_entry.getValue().smiles);
+            writer.print("\t");
+            writer.print(next_entry.getValue().p_value_original);
+            writer.print("\t");
+            writer.print(next_entry.getValue().p_value_trained);
+            writer.print("\t");
+            writer.print(next_entry.getValue().active_entry_count_original);
+            writer.print("\t");
+            writer.print(next_entry.getValue().inactive_entry_count_original);
+            writer.print("\t");
+            writer.print(next_entry.getValue().active_entry_count_trained);
+            writer.print("\t");
+            writer.print(next_entry.getValue().inactive_entry_count_trained);
+            writer.print("\t");
+            writer.print(next_entry.getValue().category);
+            writer.print("\n");
+        }
+
+    }
+
+    void run(Map<String, Algorithm.SignatureInfo> table) throws Exception {
+        algorithm_original.run(table, "");
+        algorithm_trained.run(table, "");
     }
     Algorithm algorithm_original;
     Algorithm algorithm_trained;
     String original_data_file;
     String trained_data_file;
-    String active_class;
-    String inactive_class;
+    String activity_name;
+    String inactivity_name;
     HashMap<String, String> active_active; //active originally and active in trained
     HashMap<String, String> active_inactive; //active originally but inactive in trained
     HashMap<String, String> inactive_inactive; // inactive originally and inactive in trained
