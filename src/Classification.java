@@ -2,11 +2,9 @@ import java.io.*;
 import java.util.*;
 
 import org.openscience.cdk.DefaultChemObjectBuilder;
-import org.openscience.cdk.Molecule;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.inchi.InChIGenerator;
 import org.openscience.cdk.inchi.InChIGeneratorFactory;
-import org.openscience.cdk.inchi.InChIToStructure;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.interfaces.IChemObjectBuilder;
 import org.openscience.cdk.interfaces.IMolecule;
@@ -23,18 +21,6 @@ class Classification {
         signatures_active = new HashMap<String, String>();
         signatures_inactive = new HashMap<String, String>();
     }
-
-	IMolecule to_molecule(String inchi) throws CDKException {
-		InChIGeneratorFactory factory = InChIGeneratorFactory.getInstance();
-		InChIToStructure intostruct = factory.getInChIToStructure(
-				inchi, DefaultChemObjectBuilder.getInstance()
-		);
-
-		IAtomContainer container = intostruct.getAtomContainer();
-
-		IMolecule molecule = new Molecule(container);
-		return molecule;
-	}
 
     void read_signatures(String path, HashMap<String, String> signatures) throws IOException {
         InputStream fis = new FileInputStream(path);
@@ -70,7 +56,6 @@ class Classification {
                                                            DefaultChemObjectBuilder.getInstance());
         while (reader.hasNext()) {
             IMolecule molecule = (IMolecule) reader.next();
-			molecule.setProperty("Class", 1);
             molecule_data.add(molecule);
         }
     }
