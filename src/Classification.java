@@ -2,11 +2,9 @@ import java.io.*;
 import java.util.*;
 
 import org.openscience.cdk.DefaultChemObjectBuilder;
-import org.openscience.cdk.Molecule;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.inchi.InChIGenerator;
 import org.openscience.cdk.inchi.InChIGeneratorFactory;
-import org.openscience.cdk.inchi.InChIToStructure;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.interfaces.IChemObjectBuilder;
 import org.openscience.cdk.interfaces.IMolecule;
@@ -60,7 +58,6 @@ class Classification {
                                                            DefaultChemObjectBuilder.getInstance());
         while (reader.hasNext()) {
             IMolecule molecule = (IMolecule) reader.next();
-			molecule.setProperty("Class", 1);
             molecule_data.add(molecule);
         }
     }

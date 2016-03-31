@@ -11,6 +11,7 @@ import org.openscience.cdk.smiles.SmilesGenerator;
 import org.openscience.cdk.tools.SystemOutLoggingTool;
 
 import java.io.*;
+import java.text.DecimalFormat;
 import java.util.*;
 
 public class Observer {
@@ -180,13 +181,15 @@ public class Observer {
         writer.print("\t");
         writer.print("category");
         writer.print("\n");
+        DecimalFormat numberFormat = new DecimalFormat("#.00");
+        //System.out.println(numberFormat.format(number));
         while (it.hasNext()) {
             Map.Entry<String, Algorithm.SignatureInfo> next_entry = (Map.Entry<String, Algorithm.SignatureInfo>)it.next();
             writer.print(next_entry.getValue().smiles);
             writer.print("\t");
-            writer.print(next_entry.getValue().p_value_original);
+            writer.print(formatNum(next_entry.getValue().p_value_original));
             writer.print("\t");
-            writer.print(next_entry.getValue().p_value_trained);
+            writer.print(formatNum(next_entry.getValue().p_value_trained));
             writer.print("\t");
             writer.print(next_entry.getValue().active_entry_count_original);
             writer.print("\t");
@@ -201,6 +204,36 @@ public class Observer {
         }
 
     }
+
+    private static final int MAX_LENGTH = 7;
+
+    private static String formatNum(double number) {
+    int digitsAvailable = MAX_LENGTH - 2;
+    if (Math.abs(number) < Math.pow(10, digitsAvailable)
+            && Math.abs(number) > Math.pow(10, -digitsAvailable)) {
+        String format = "0.";
+        double temp = number;
+        for (int i = 0; i < digitsAvailable; i++) {
+            if ((temp /= 10) < 1) {
+                format += "#";
+            }
+        }
+        return new DecimalFormat(format).format(number);
+    }
+    String format = "0.";
+    for (int i = 0; i < digitsAvailable; i++) {
+            format += "#";
+    }
+    String r = new DecimalFormat(format + "E0").format(number);
+    int lastLength = r.length() + 1;
+    while (r.length() > MAX_LENGTH && lastLength > r.length()) {
+        lastLength = r.length();
+        r = r.replaceAll("\\.?[0-9]E", "E");
+    }
+    return r;
+}
+
+
 
     void run(Map<String, Algorithm.SignatureInfo> table) throws Exception {
         algorithm_original.run(table, "");

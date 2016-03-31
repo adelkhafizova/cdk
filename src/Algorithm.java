@@ -371,7 +371,13 @@ public class Algorithm {
         // layout the molecule
         StructureDiagramGenerator sdg = new StructureDiagramGenerator();
         sdg.setMolecule(molecule, false);
-        sdg.generateCoordinates();
+        try {
+            sdg.generateCoordinates();
+        }
+        catch (Exception e) {
+            System.err.println(inchi);
+            return "";
+        }
 
         // make generators
         List<IGenerator<IAtomContainer>> generators = new ArrayList<IGenerator<IAtomContainer>>();
@@ -401,6 +407,8 @@ public class Algorithm {
         g.dispose();
 
         // write to file
+        name = name.replace("#", "?");
+        System.out.println(name);
         File file = new File("images", name + ".png");
         ImageIO.write((RenderedImage)image, "PNG", file);
         return name;
@@ -409,12 +417,14 @@ public class Algorithm {
     void dump_data(String path) throws Exception {
         PrintWriter writer = new PrintWriter(path + "final_signatures_active.txt", "UTF-8");
         for (Map.Entry<String, Double> substructure : final_signatures_active.entrySet()) {
-            writer.println(substructure.getKey() + ' ' + substructure.getValue());
+            if (drawMolecule(substructure.getKey().toString()) != "")
+                writer.println(substructure.getKey() + ' ' + substructure.getValue());
         }
         writer.close();
         writer = new PrintWriter(path + "final_signatures_inactive.txt", "UTF-8");
         for (Map.Entry<String, Double> substructure : final_signatures_inactive.entrySet()) {
-            writer.println(substructure.getKey() + ' ' + substructure.getValue());
+            if (drawMolecule(substructure.getKey().toString()) != "")
+                writer.println(substructure.getKey() + ' ' + substructure.getValue());
         }
         writer.close();
         writer = new PrintWriter(path + "signatures_active_heights.txt", "UTF-8");
@@ -432,7 +442,8 @@ public class Algorithm {
         Iterator it = int_active.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry pair = (Map.Entry)it.next();
-            writer.println(drawMolecule((String)pair.getKey()));
+            //previously we wrote only those on the verge
+            //writer.println(drawMolecule((String)pair.getKey()));
             writer.println(pair.getValue().toString());
         }
         writer.close();
@@ -441,7 +452,7 @@ public class Algorithm {
         System.out.println(int_inactive.size());
         while (it.hasNext()) {
             Map.Entry pair = (Map.Entry)it.next();
-            writer.println(drawMolecule((String)pair.getKey()));
+            //println(drawMolecule((String)pair.getKey()));
             writer.println(pair.getValue().toString());
         }
         writer.close();
