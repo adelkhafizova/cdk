@@ -15,6 +15,8 @@ import org.openscience.cdk.signature.AtomSignature;
 import org.openscience.cdk.signature.MoleculeSignature;
 import org.openscience.cdk.smiles.SmilesGenerator;
 
+//module for dumping signatures with its activity
+
 class Classification {
     Classification() {
         this.molecule_data = new ArrayList<IMolecule>();
@@ -23,18 +25,6 @@ class Classification {
         signatures_active = new HashMap<String, String>();
         signatures_inactive = new HashMap<String, String>();
     }
-
-	IMolecule to_molecule(String inchi) throws CDKException {
-		InChIGeneratorFactory factory = InChIGeneratorFactory.getInstance();
-		InChIToStructure intostruct = factory.getInChIToStructure(
-				inchi, DefaultChemObjectBuilder.getInstance()
-		);
-
-		IAtomContainer container = intostruct.getAtomContainer();
-
-		IMolecule molecule = new Molecule(container);
-		return molecule;
-	}
 
     void read_signatures(String path, HashMap<String, String> signatures) throws IOException {
         InputStream fis = new FileInputStream(path);
@@ -141,20 +131,20 @@ class Classification {
 		for (int i = 0; i < active.size(); ++i) {
 			if (active.get(i)) {
 				if (inactive.get(i)) {
-					System.out.println("unrecognized");
+					//unrecognized
 					final_activity.add(2);
 				} else {
-					System.out.println("mutagen");
+					//mutagen
 					++active_count;
 					final_activity.add(1);
 				}
 			} else {
 				if (inactive.get(i)) {
-					System.out.println("nonmutagen");
+					//nonmutagen
 					++inactive_count;
 					final_activity.add(0);
 				} else {
-					System.out.println("unrecognized");
+					//unrecognized
 					final_activity.add(2);
 				}
 			}
