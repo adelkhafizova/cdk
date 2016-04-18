@@ -21,7 +21,7 @@ public class Observer {
         this.activity_name = activity_name;
         this.inactivity_name = inactivity_name;
     }
-    void initialize_algorithms(double p_value_threshold, int minimum_occurrence, double substructure_frequency) {
+    void initialize_algorithms(double p_value_threshold, int minimum_occurrence, double substructure_frequency) throws Exception {
         algorithm_original = new Algorithm(p_value_threshold, minimum_occurrence, substructure_frequency,
                 new HashMap<String, Double>(), new HashMap<String, Double>(), true);
         algorithm_original.data_initialization(original_data_file, activity_name, inactivity_name);
@@ -180,6 +180,8 @@ public class Observer {
         writer.print("inactive_entry_trained");
         writer.print("\t");
         writer.print("category");
+        writer.print("\t");
+        writer.print("accuracy");
         writer.print("\n");
         DecimalFormat numberFormat = new DecimalFormat("#.00");
         //System.out.println(numberFormat.format(number));
@@ -200,6 +202,8 @@ public class Observer {
             writer.print(next_entry.getValue().inactive_entry_count_trained);
             writer.print("\t");
             writer.print(next_entry.getValue().category);
+            writer.print("\t");
+            writer.print(next_entry.getValue().average_accuracy);
             writer.print("\n");
         }
 

@@ -79,9 +79,10 @@ public class Algorithm {
         this.int_active = new HashMap<String, p_value_pair >();
         this.int_inactive = new HashMap<String, p_value_pair>();
         this.is_original = original;
+        this.accuracies = new ArrayList<Double>();
     }
 
-    void data_initialization(String pathname, String activity_name, String inactivity_name) {
+    void read_molecules(String pathname, String activity_name, String inactivity_name) {
         try {
             File sdfFile = new File(pathname);
             IteratingMDLReader reader = new IteratingMDLReader(new FileInputStream(sdfFile), DefaultChemObjectBuilder.getInstance());
@@ -119,6 +120,7 @@ public class Algorithm {
                 System.err.println(molecule_data.size());
                 throw new Exception("Invalid data, not all molecules have activity value");
             }
+            System.err.println("Original molecule size" + molecule_data.size());
             //here fill molecule_data, activity_data and allocate memory for atom states and fill it with 0
             //while initializing determine how many activity compounds there are
         } catch (Exception e) {
@@ -126,25 +128,96 @@ public class Algorithm {
         }
     }
 
-    class Signature_state {
-        Signature_state() {
-            this.met_positions = new ArrayList<Signature_position>();
-            n_dash = 0;
-            m_dash = 0;
-        }
 
-        void add(int i, int j, Boolean activity) {
-            Signature_position sp = new Signature_position(i, j);
-            this.met_positions.add(sp);
-            n_dash++;
-            if (activity)
-                m_dash++;
+    void read_molecules_predicted(String pathname, String activity_name, String inactivity_name) {
+        try {
+            File sdfFile = new File(pathname);
+            IteratingMDLReader reader = new IteratingMDLReader(new FileInputStream(sdfFile), DefaultChemObjectBuilder.getInstance());
+            int inactive_num = 0;
+            int index = 0;
+            while (reader.hasNext()) {
+                IMolecule molecule = (IMolecule) reader.next();
+                //String properties = molecule.getProperties().values().toString();
+                System.out.println(activity_data.get(index));
+                if (!activity_data.get(index)) {
+                    //activity_data.add(false);
+                    ++inactive_num;
+                    molecule_data.add(molecule);
+                    ArrayList<Boolean> atom_states_local = new ArrayList<Boolean>(molecule.getAtomCount());
+                    for (int t = 0; t < molecule.getAtomCount(); t++) {
+                        atom_states_local.add(false);
+                    }
+                    atom_states.add(atom_states_local);
+                    data_num++;
+                } else {
+                    ++active_num;
+                    molecule_data.add(molecule);
+                    ArrayList<Boolean> atom_states_local = new ArrayList<Boolean>(molecule.getAtomCount());
+                    for (int t = 0; t < molecule.getAtomCount(); t++) {
+                        atom_states_local.add(false);
+                    }
+                    atom_states.add(atom_states_local);
+                    data_num++;
+                }
+                ++index;
+            }
+            if (active_num + inactive_num != molecule_data.size()) {
+                System.err.println(active_num);
+                System.err.println(inactive_num);
+                System.err.println(molecule_data.size());
+                throw new Exception("Invalid data, not all molecules have activity value");
+            }
+            //here fill molecule_data, activity_data and allocate memory for atom states and fill it with 0
+            //while initializing determine how many activity compounds there are
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
         }
+        if (accuracies.size() != molecule_data.size()) {
+            System.out.println("Non-matching sizes");
+            System.out.println(accuracies.size());
+            System.out.println(molecule_data.size());
+        }
+    }
 
-        //int processed_condition; //not met; met but not interesting; met but interesting; included in final list
-        ArrayList<Signature_position> met_positions; //positions of atoms, where this signature was met
-        double n_dash;//number of substructures
-        double m_dash;//number of active substructures
+    void read_accuracies(String pathname, String activity_name, String inactivity_name) throws Exception{
+        Scanner scan;
+        File file = new File(pathname.replace("_experimental.sdf", "_accuracies.csv"));
+        try {
+            scan = new Scanner(file);
+            scan.nextLine();
+
+            while(scan.hasNextLine()) {
+                String[] data = scan.nextLine().split(";");
+                if (!is_original) {
+                    if (data[0].equals(activity_name)) {
+                        activity_data.add(true);
+                    } else {
+                        activity_data.add(false);
+                    }
+                }
+                this.accuracies.add(Double.parseDouble(data[2].replaceAll(",", ".")));
+            }
+            /*while(scan.hasNextDouble())
+            {
+                this.accuracies.add(scan.nextDouble());
+            }*/
+            System.out.println(activity_data.size());
+
+        } catch (FileNotFoundException e1) {
+            e1.printStackTrace();
+        }
+        /*if (accuracies.size() != molecule_data.size()) {
+            throw new Exception("Unmatching accuracies and data file");
+        }*/
+    }
+
+    void data_initialization(String pathname, String activity_name, String inactivity_name) throws Exception{
+        if (!is_original) {
+            read_accuracies(pathname, activity_name, inactivity_name);
+            read_molecules_predicted(pathname, activity_name, inactivity_name);
+        } else {
+            read_molecules(pathname, activity_name, inactivity_name);
+        }
     }
 
     class Signature_position {
@@ -157,6 +230,30 @@ public class Algorithm {
         }
     }
 
+    class Signature_state {
+        Signature_state() {
+            this.met_positions = new ArrayList<Signature_position>();
+            n_dash = 0;
+            m_dash = 0;
+            average_accuracy = 0;
+        }
+
+        void add(int i, int j, Boolean activity, double accuracy) {
+            Signature_position sp = new Signature_position(i, j);
+            this.met_positions.add(sp);
+            n_dash++;
+            if (activity)
+                m_dash++;
+            average_accuracy += accuracy;
+        }
+
+        //int processed_condition; //not met; met but not interesting; met but interesting; included in final list
+        ArrayList<Signature_position> met_positions; //positions of atoms, where this signature was met
+        double n_dash;//number of substructures
+        double m_dash;//number of active substructures
+        double average_accuracy; //average accuracy of predicted activity
+    }
+
     class SignatureInfo {
         double active_entry_count_original;
         double inactive_entry_count_original;
@@ -164,6 +261,7 @@ public class Algorithm {
         double inactive_entry_count_trained;
         double p_value_original;
         double p_value_trained;
+        double average_accuracy;
         int category;
         String smiles;
         SignatureInfo() {
@@ -180,10 +278,11 @@ public class Algorithm {
             inactive_entry_count_original = inactive;
             p_value_original = p_value;
         }
-        void fill_trained(double active, double inactive, double p_value) {
+        void fill_trained(double active, double inactive, double p_value, double accuracy) {
             active_entry_count_trained = active;
             inactive_entry_count_trained = inactive;
             p_value_trained = p_value;
+            average_accuracy /= (active + inactive);
         }
         void fill_category(int input_category) {
             category = input_category;
@@ -214,20 +313,39 @@ public class Algorithm {
         int molecule_index = 0;
         for (IMolecule m : this.molecule_data) { //find all interesting substructures
             for (int i = 0; i < m.getAtomCount(); i++) {
-                if (this.atom_states.get(molecule_index).get(i) == false) { //not in the current signatures and not viewed
+                if (this.atom_states.get(molecule_index).get(i) == false) { //not in the current signatures and not viewed (we still search in this direction and it's not viewed)
                     AtomSignature as = new AtomSignature(i, height, m);
                     signature_to_inchi.put(as.toCanonicalString(), atom_signature_to_inchi(as));
                     if (current_signatures.containsKey(as.toString()) == false) {
                         Signature_state ss = new Signature_state();
-                        ss.add(molecule_index, i, this.activity_data.get(molecule_index));
                         current_signatures.put(as.toString(), ss);
+                    }
+                    if (!is_original) {
+                        current_signatures.get(as.toString()).add(molecule_index, i,
+                                                                  this.activity_data.get(molecule_index),
+                                                                  accuracies.get(molecule_index));
                     } else {
-                        current_signatures.get(as.toString()).add(molecule_index, i, this.activity_data.get(molecule_index));
+                        current_signatures.get(as.toString()).add(molecule_index, i,
+                                                                  this.activity_data.get(molecule_index), 0);
                     }
                 }
             }
             molecule_index++;
         }
+    }
+
+    Double calculate_p_value(double m_, double n_) {
+        Double true_p_value = 0.0;
+        for (double k = m_; k < n_; k++) {
+            if (n_ - k == 0 || k == 0 || data_num == 0) {
+                System.out.println(n_ - k + ' ' + k + ' ' + data_num);
+            }
+            BigInteger coef = BigIntegerMath.binomial((int) n_, (int) k);
+            true_p_value += coef.doubleValue() * Math.pow(new Double(active_num)/data_num, k) *
+                    Math.pow(new Double(data_num - active_num)/data_num, n_ - k);
+        }
+        true_p_value += Math.pow(new Double(active_num) / data_num, n_);
+        return true_p_value;
     }
 
     void process_signatures(Map<String, Signature_state> current_signatures, int height, Map<String, SignatureInfo> table)
@@ -238,27 +356,9 @@ public class Algorithm {
                 double n_ = substructure.getValue().n_dash;
                 double m_ = substructure.getValue().m_dash;
                 if (current_frequency > substructure_frequency) {
-                    double current_p_value_active = 0;
-                    Double true_p_value = 0.0;
-                    for (double k = m_; k < n_; k++) {
-                        if (n_ - k == 0 || k == 0 || data_num == 0) {
-                            System.out.println(n_ - k + ' ' + k + ' ' + data_num);
-                        }
-                        current_p_value_active += Math.pow(n_ / (2 * pi * (n_ - k) * k), 0.5) * Math.pow(active_num / k, k) *
-                                Math.pow((data_num - active_num) / (n_ - k), n_ - k) * Math.pow(n_ / data_num, n_);
-                        BigInteger coef = BigIntegerMath.binomial((int) n_, (int) k);
-                        true_p_value += coef.doubleValue() * Math.pow(new Double(active_num)/data_num, k) *
-                                Math.pow(new Double(data_num - active_num)/data_num, n_ - k);
-                        //System.out.println(Math.pow(new Double(active_num)/data_num, k));
-                        //System.out.println(new Double(active_num)/data_num);
-                        //System.out.println(k);
-                    }
-                    //current_p_value_active += Math.pow(active_num / data_num, n_);
-                    true_p_value += Math.pow(new Double(active_num) / data_num, n_);
-                    //System.out.println(Math.pow(new Double(active_num) / data_num, n_));
-                    //System.out.println("True" + true_p_value.toString());
+                    Double true_p_value = calculate_p_value(m_, n_);
+
                     if (true_p_value < p_value_threshold) {
-                        //if (current_p_value_active < p_value_threshold) {
                         for (Signature_position sp : substructure.getValue().met_positions) {
                             atom_states.get(sp.molecule_number).set(sp.atom_number, true);
                         }
@@ -266,7 +366,6 @@ public class Algorithm {
                         String as_string = substructure.getKey();
                         String InChi = atom_signature_to_inchi(as_string);
                         final_signatures_active.put(InChi, true_p_value);
-                        //final_signatures_active.put(InChi, current_p_value_active);
                         active.put(InChi, as_string);
                         heights_active.put(as_string, height);
                         if (is_original) {
@@ -278,10 +377,8 @@ public class Algorithm {
                             SignatureInfo si = table.get(InChi);
                             if (si == null) {
                                 si = new SignatureInfo();
-                                si.fill_trained(m_, n_ - m_, true_p_value);
-                            } else {
-                                si.fill_trained(m_, n_ - m_, true_p_value);
                             }
+                            si.fill_trained(m_, n_ - m_, true_p_value, substructure.getValue().average_accuracy);
                         }
                     }
                     else {
@@ -289,7 +386,6 @@ public class Algorithm {
                             String as_string = substructure.getKey();
                             String InChi = atom_signature_to_inchi(as_string);
                             if (prev_active.containsKey(InChi)) {
-                                //int_active.put(InChi, new p_value_pair(prev_active.get(InChi), current_p_value_active));
                                 int_active.put(InChi, new p_value_pair(prev_active.get(InChi), true_p_value));
                             }
                         }
@@ -299,17 +395,13 @@ public class Algorithm {
                 current_frequency = (substructure.getValue().n_dash - substructure.getValue().m_dash) / substructure.getValue().n_dash;
 
                 if (current_frequency > substructure_frequency) {
-                    double current_p_value_inactive = 0;
                     Double true_p_value = 0.0;
                     m_ = n_ - substructure.getValue().m_dash;
                     for (double k = m_; k < n_; k++) {
-                        //current_p_value_inactive += Math.pow(n_ / (2 * pi * (n_ - k) * k), 0.5) * Math.pow((data_num - active_num) / k, k) *
-                        //        Math.pow(active_num / (n_ - k), n_ - k) * Math.pow(n_ / data_num, n_);
                         BigInteger coef = BigIntegerMath.binomial((int) n_, (int) k);
                         true_p_value += coef.doubleValue() * Math.pow(new Double(active_num)/data_num, k) *
                                 Math.pow(new Double(data_num - active_num)/data_num, n_ - k);
                     }
-                    current_p_value_inactive += Math.pow((data_num - active_num) / data_num, n_);
                     true_p_value += Math.pow(new Double(active_num) / data_num, n_);
                     if (true_p_value < p_value_threshold) {
                         for (Signature_position sp : substructure.getValue().met_positions) {
@@ -329,10 +421,8 @@ public class Algorithm {
                             SignatureInfo si = table.get(InChi);
                             if (si == null) {
                                 si = new SignatureInfo();
-                                si.fill_trained(m_, n_ - m_, true_p_value);
-                            } else {
-                                si.fill_trained(m_, n_ - m_, true_p_value);
                             }
+                                si.fill_trained(m_, n_ - m_, true_p_value, substructure.getValue().average_accuracy);
                         }
                     }
                     else {
@@ -408,7 +498,7 @@ public class Algorithm {
 
         // write to file
         name = name.replace("#", "?");
-        System.out.println(name);
+        //System.out.println(name);
         File file = new File("images", name + ".png");
         ImageIO.write((RenderedImage)image, "PNG", file);
         return name;
@@ -426,38 +516,37 @@ public class Algorithm {
             if (drawMolecule(substructure.getKey().toString()) != "")
                 writer.println(substructure.getKey() + ' ' + substructure.getValue());
         }
-        writer.close();
-        writer = new PrintWriter(path + "signatures_active_heights.txt", "UTF-8");
+        PrintWriter writer2 = new PrintWriter(path + "signatures_active_heights.txt", "UTF-8");
         for (Map.Entry<String, Integer> substructure : heights_active.entrySet()) {
-            writer.println(substructure.getKey() + ' ' + substructure.getValue());
+            writer2.println(substructure.getKey() + ' ' + substructure.getValue());
         }
-        writer.close();
-        writer = new PrintWriter(path + "signatures_inactive_heights.txt", "UTF-8");
+        writer2.close();
+        writer2 = new PrintWriter(path + "signatures_inactive_heights.txt", "UTF-8");
         for (Map.Entry<String, Integer> substructure : heights_inactive.entrySet()) {
-            writer.println(substructure.getKey() + ' ' + substructure.getValue());
+            writer2.println(substructure.getKey() + ' ' + substructure.getValue());
         }
-        writer.close();
-        writer = new PrintWriter("int_signatures_active.txt", "UTF-8");
-        System.out.println(int_active.size());
+        writer2.close();
+        writer2 = new PrintWriter("int_signatures_active.txt", "UTF-8");
+        //System.out.println(int_active.size());
         Iterator it = int_active.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry pair = (Map.Entry)it.next();
             //previously we wrote only those on the verge
             //writer.println(drawMolecule((String)pair.getKey()));
-            writer.println(pair.getValue().toString());
+            writer2.println(pair.getValue().toString());
         }
-        writer.close();
-        writer = new PrintWriter("int_signatures_inactive.txt", "UTF-8");
+        writer2.close();
+        writer2 = new PrintWriter("int_signatures_inactive.txt", "UTF-8");
         it = int_inactive.entrySet().iterator();
-        System.out.println(int_inactive.size());
+        //System.out.println(int_inactive.size());
         while (it.hasNext()) {
             Map.Entry pair = (Map.Entry)it.next();
             //println(drawMolecule((String)pair.getKey()));
-            writer.println(pair.getValue().toString());
+            writer2.println(pair.getValue().toString());
         }
-        writer.close();
-        System.out.println(final_signatures_active.size());
-        System.out.println(final_signatures_inactive.size());
+        writer2.close();
+        System.out.println("Final signatures " + final_signatures_active.size());
+        System.out.println("Final signatures " + final_signatures_inactive.size());
     }
 
     void run(Map<String, SignatureInfo> table, String path) throws Exception {
@@ -481,6 +570,7 @@ public class Algorithm {
     ArrayList<IMolecule> molecule_data;
     ArrayList<Boolean> activity_data;
     ArrayList<ArrayList<Boolean>> atom_states;
+    ArrayList<Double> accuracies; //accuracies for predicted values
     HashMap<String, Double> final_signatures_active;
     HashMap<String, Double> final_signatures_inactive;
     HashMap<String, String> active;
@@ -494,24 +584,15 @@ public class Algorithm {
 
     public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException, CDKException,
             IOException {
-        //Algorithm a = new Algorithm(0.05, 5, 0.8);
-        //a.data_initialization("pubchem_cyp1a2_train.sdf", "Inhibitor", "Noninhibitor");
-        //a.run("");
-        //Observer observer = new Observer("cyp450_inhibition_full_set_j48_bagging_experimental.sdf", "cyp450_inhibition_full_set_j48_bagging_predicted.sdf");
         Observer observer = new Observer(args[0], args[1], args[2], args[3]);
         Map<String, SignatureInfo> table = new HashMap<String, SignatureInfo>();
 
-        observer.initialize_algorithms(Double.parseDouble(args[4]), Integer.parseInt(args[5]), Double.parseDouble(args[6]));
         try {
+            observer.initialize_algorithms(Double.parseDouble(args[4]), Integer.parseInt(args[5]), Double.parseDouble(args[6]));
             observer.run(table);
         } catch (Exception e) {
             e.printStackTrace();
         }
         observer.analyze(table);
-        //Classification classifier;
-        //classifier = new Classification();
-        //classifier.data_initialization("");
-        //classifier.classify_data("pubchem_cyp1a2_test.sdf");
-        //a.classify_data("final_signatures_active.txt", "final_signatures_inactive.txt", "test_mol_for_class.sdf");
     }
 }
