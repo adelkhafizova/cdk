@@ -70,8 +70,8 @@ public class Algorithm {
         this.final_signatures_inactive = new HashMap<String, Double>();
         this.active = new HashMap<String, String>();
         this.inactive = new HashMap<String, String>();
-        this.heights_active = new HashMap<String, Integer>();
-        this.heights_inactive = new HashMap<String, Integer>();
+        //this.heights_active = new HashMap<String, Integer>();
+        //this.heights_inactive = new HashMap<String, Integer>();
         this.data_num = 0;
         this.active_num = 0;
         this.prev_active = ex_active;
@@ -282,7 +282,7 @@ public class Algorithm {
             active_entry_count_trained = active;
             inactive_entry_count_trained = inactive;
             p_value_trained = p_value;
-            average_accuracy /= (active + inactive);
+            average_accuracy = accuracy / (active + inactive);
         }
         void fill_category(int input_category) {
             category = input_category;
@@ -367,7 +367,7 @@ public class Algorithm {
                         String InChi = atom_signature_to_inchi(as_string);
                         final_signatures_active.put(InChi, true_p_value);
                         active.put(InChi, as_string);
-                        heights_active.put(as_string, height);
+                        //heights_active.put(as_string, height);
                         if (is_original) {
                             SignatureInfo si = new SignatureInfo();
                             si.fill_original(m_, n_ - m_, true_p_value);
@@ -377,6 +377,7 @@ public class Algorithm {
                             SignatureInfo si = table.get(InChi);
                             if (si == null) {
                                 si = new SignatureInfo();
+                                table.put(InChi, si);
                             }
                             si.fill_trained(m_, n_ - m_, true_p_value, substructure.getValue().average_accuracy);
                         }
@@ -411,7 +412,7 @@ public class Algorithm {
                         String InChi = atom_signature_to_inchi(as_string);
                         final_signatures_inactive.put(InChi, true_p_value);
                         inactive.put(InChi, as_string);
-                        heights_inactive.put(as_string, height);
+                        //heights_inactive.put(as_string, height);
                         if (is_original) {
                             SignatureInfo si = new SignatureInfo();
                             si.fill_original(m_, n_ - m_, true_p_value);
@@ -421,8 +422,10 @@ public class Algorithm {
                             SignatureInfo si = table.get(InChi);
                             if (si == null) {
                                 si = new SignatureInfo();
+                                table.put(InChi, si);
                             }
-                                si.fill_trained(m_, n_ - m_, true_p_value, substructure.getValue().average_accuracy);
+                            System.out.println("Accuracy " + substructure.getValue().average_accuracy);
+                            si.fill_trained(m_, n_ - m_, true_p_value, substructure.getValue().average_accuracy);
                         }
                     }
                     else {
@@ -507,16 +510,28 @@ public class Algorithm {
     void dump_data(String path) throws Exception {
         PrintWriter writer = new PrintWriter(path + "final_signatures_active.txt", "UTF-8");
         for (Map.Entry<String, Double> substructure : final_signatures_active.entrySet()) {
-            if (drawMolecule(substructure.getKey().toString()) != "")
-                writer.println(substructure.getKey() + ' ' + substructure.getValue());
+            try {
+                if (drawMolecule(substructure.getKey().toString()) != "")
+                    writer.println(substructure.getKey() + ' ' + substructure.getValue());
+            } catch (Exception e) {
+                if (substructure.getKey() != null) {
+                    System.out.println(substructure.getKey().toString());
+                }
+            }
         }
         writer.close();
         writer = new PrintWriter(path + "final_signatures_inactive.txt", "UTF-8");
         for (Map.Entry<String, Double> substructure : final_signatures_inactive.entrySet()) {
-            if (drawMolecule(substructure.getKey().toString()) != "")
-                writer.println(substructure.getKey() + ' ' + substructure.getValue());
+            try {
+                if (drawMolecule(substructure.getKey().toString()) != "")
+                    writer.println(substructure.getKey() + ' ' + substructure.getValue());
+            } catch (Exception e) {
+                if (substructure.getKey() != null) {
+                    System.out.println(substructure.getKey().toString());
+                }
+            }
         }
-        PrintWriter writer2 = new PrintWriter(path + "signatures_active_heights.txt", "UTF-8");
+        /*PrintWriter writer2 = new PrintWriter(path + "signatures_active_heights.txt", "UTF-8");
         for (Map.Entry<String, Integer> substructure : heights_active.entrySet()) {
             writer2.println(substructure.getKey() + ' ' + substructure.getValue());
         }
@@ -525,8 +540,8 @@ public class Algorithm {
         for (Map.Entry<String, Integer> substructure : heights_inactive.entrySet()) {
             writer2.println(substructure.getKey() + ' ' + substructure.getValue());
         }
-        writer2.close();
-        writer2 = new PrintWriter("int_signatures_active.txt", "UTF-8");
+        writer2.close();*/
+        PrintWriter writer2 = new PrintWriter("int_signatures_active.txt", "UTF-8");
         //System.out.println(int_active.size());
         Iterator it = int_active.entrySet().iterator();
         while (it.hasNext()) {
@@ -579,8 +594,8 @@ public class Algorithm {
     HashMap<String, Double> prev_inactive;
     HashMap<String, p_value_pair> int_active;
     HashMap<String, p_value_pair> int_inactive;
-    HashMap<String, Integer> heights_active;
-    HashMap<String, Integer> heights_inactive;
+    //HashMap<String, Integer> heights_active;
+    //HashMap<String, Integer> heights_inactive;
 
     public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException, CDKException,
             IOException {
