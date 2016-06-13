@@ -6,9 +6,7 @@ import org.openscience.cdk.inchi.InChIToStructure;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.interfaces.IMolecule;
 import org.openscience.cdk.io.SDFWriter;
-import org.openscience.cdk.io.iterator.IteratingMDLReader;
 import org.openscience.cdk.smiles.SmilesGenerator;
-import org.openscience.cdk.tools.SystemOutLoggingTool;
 
 import java.io.*;
 import java.text.DecimalFormat;
@@ -21,14 +19,14 @@ public class Observer {
         this.activity_name = activity_name;
         this.inactivity_name = inactivity_name;
     }
-    void initialize_algorithms(double p_value_threshold, int minimum_occurrence, double substructure_frequency) throws Exception {
+    void initialize_algorithms(double p_value_threshold, int minimum_occurrence, double substructure_frequency, boolean use_accuracies) throws Exception {
         algorithm_original = new Algorithm(p_value_threshold, minimum_occurrence, substructure_frequency,
                 new HashMap<String, Double>(), new HashMap<String, Double>(), true);
-        algorithm_original.data_initialization(original_data_file, activity_name, inactivity_name);
+        algorithm_original.data_initialization(original_data_file, activity_name, inactivity_name, use_accuracies);
         algorithm_trained = new Algorithm(p_value_threshold, minimum_occurrence, substructure_frequency,
                 algorithm_original.final_signatures_active,
                 algorithm_original.final_signatures_inactive, false);
-        algorithm_trained.data_initialization(trained_data_file, activity_name, inactivity_name);
+        algorithm_trained.data_initialization(trained_data_file, activity_name, inactivity_name, use_accuracies);
     }
 
     void analyze(Map<String, Algorithm.SignatureInfo> table) throws IOException, CDKException {
@@ -105,14 +103,14 @@ public class Observer {
         it = algorithm_trained.active.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry pair = (Map.Entry) it.next();
-            if (algorithm_original.active.containsKey(pair.getKey()) == false && algorithm_original.inactive.containsKey(pair.getKey())){
+            if (algorithm_original.active.containsKey(pair.getKey()) == false && algorithm_original.inactive.containsKey(pair.getKey()) == false){
                 insignificant_became_active.add((String) pair.getKey());
             }
         }
         it = algorithm_trained.inactive.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry pair = (Map.Entry) it.next();
-            if (algorithm_original.active.containsKey(pair.getKey()) == false && algorithm_original.inactive.containsKey(pair.getKey())){
+            if (algorithm_original.active.containsKey(pair.getKey()) == false && algorithm_original.inactive.containsKey(pair.getKey()) == false){
                 insignificant_became_inactive.add((String) pair.getKey());
             }
         }
@@ -134,17 +132,28 @@ public class Observer {
         //float false_negative = (float)active_inactive.size()/(float)algorithm_original.final_signatures_active.size();
         //float false_positive = (float)inactive_active.size()/(float)algorithm_original.final_signatures_inactive.size();
         //float inactive = (float)inactive_inactive.size()/(float)algorithm_original.final_signatures_inactive.size();
-        System.out.println(active);
-        System.out.println(false_negative);
-        System.out.println(false_positive);
-        System.out.println(inactive);
+        System.out.println("Active active size" + active);
+        System.out.println("Inactive became active" + false_negative);
+        System.out.println("Active became inactive" + false_positive);
+        System.out.println("Inactive became inactive" + inactive);
     }
 
     void print_set(HashSet<String> molecules, Integer category, PrintWriter writer, SDFWriter sdfwriter, Map<String, Algorithm.SignatureInfo> table) throws CDKException {
         Iterator<String> it = molecules.iterator();
+        Integer counter = 0;
+        if (molecules.size() == 0) {
+            return;
+        }
+        System.out.println(molecules.size());
         while (it.hasNext()) {
             InChIGeneratorFactory factory = InChIGeneratorFactory.getInstance();
-            String current_inchi = it.next().toString();
+            String next_string = it.next();
+            if (next_string == null) {
+                System.err.println("Null here!");
+                System.err.println("Counter " + counter.toString());
+                continue;
+            }
+            String current_inchi = next_string.toString();
             table.get(current_inchi).fill_category(category);
             InChIToStructure intostruct = factory.getInChIToStructure(
                     current_inchi, DefaultChemObjectBuilder.getInstance()
@@ -157,6 +166,9 @@ public class Observer {
             sdfwriter.write(molecule);
             SmilesGenerator sg = new SmilesGenerator();
             String smiles = sg.createSMILES(molecule);
+            if (table.get(current_inchi) == null) {
+                System.err.println("No current inchi in table");
+            }
             table.get(current_inchi).fill_smiles(smiles);
             writer.println(smiles + '\t' + category.toString());
         }

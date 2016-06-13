@@ -2,23 +2,22 @@ import java.awt.*;
 import java.awt.geom.Rectangle2D;
 import java.awt.image.BufferedImage;
 import java.awt.image.RenderedImage;
+
 import java.io.*;
-//import java.math.BigInteger;
+
 import java.math.BigInteger;
-import java.security.Signature;
+
 import java.util.*;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 
 import com.google.common.math.BigIntegerMath;
+
 import org.openscience.cdk.DefaultChemObjectBuilder;
 import org.openscience.cdk.Molecule;
-import org.openscience.cdk.exception.IncorrectUseOfCDKCoreClassError;
 import org.openscience.cdk.inchi.InChIToStructure;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.interfaces.IChemObjectBuilder;
 import org.openscience.cdk.interfaces.IMolecule;
-import org.openscience.cdk.io.formats.SybylDescriptorFormat;
 import org.openscience.cdk.io.iterator.IteratingMDLReader;
 import org.openscience.cdk.layout.StructureDiagramGenerator;
 import org.openscience.cdk.renderer.AtomContainerRenderer;
@@ -37,10 +36,8 @@ import org.openscience.cdk.smiles.SmilesGenerator;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.smiles.SmilesGenerator;
 import org.openscience.cdk.io.SDFWriter;
-import org.openscience.cdk.tools.SystemOutLoggingTool;
 
 import javax.imageio.ImageIO;
-//import com.google.common.math.BigIntegerMath;
 
 class p_value_pair {
     public p_value_pair(Double p_value_sign, Double p_value_int) {
@@ -54,7 +51,6 @@ class p_value_pair {
         return local;
     }
 }
-
 
 public class Algorithm {
     Algorithm(double p_value_threshold, int minimum_occurrence, double substructure_frequency,
@@ -137,10 +133,7 @@ public class Algorithm {
             int index = 0;
             while (reader.hasNext()) {
                 IMolecule molecule = (IMolecule) reader.next();
-                //String properties = molecule.getProperties().values().toString();
-                System.out.println(activity_data.get(index));
                 if (!activity_data.get(index)) {
-                    //activity_data.add(false);
                     ++inactive_num;
                     molecule_data.add(molecule);
                     ArrayList<Boolean> atom_states_local = new ArrayList<Boolean>(molecule.getAtomCount());
@@ -188,6 +181,11 @@ public class Algorithm {
 
             while(scan.hasNextLine()) {
                 String[] data = scan.nextLine().split(";");
+                if (data.length == 0) {
+                    activity_data.add(false);
+                    this.accuracies.add(0.0);
+                    continue;
+                }
                 if (!is_original) {
                     if (data[0].equals(activity_name)) {
                         activity_data.add(true);
@@ -197,10 +195,6 @@ public class Algorithm {
                 }
                 this.accuracies.add(Double.parseDouble(data[2].replaceAll(",", ".")));
             }
-            /*while(scan.hasNextDouble())
-            {
-                this.accuracies.add(scan.nextDouble());
-            }*/
             System.out.println(activity_data.size());
 
         } catch (FileNotFoundException e1) {
@@ -211,8 +205,9 @@ public class Algorithm {
         }*/
     }
 
-    void data_initialization(String pathname, String activity_name, String inactivity_name) throws Exception{
-        if (!is_original) {
+    void data_initialization(String pathname, String activity_name, String inactivity_name, boolean use_accuracies) throws Exception{
+        use_accuracy = use_accuracies;
+        if (!is_original && use_accuracies) {
             read_accuracies(pathname, activity_name, inactivity_name);
             read_molecules_predicted(pathname, activity_name, inactivity_name);
         } else {
@@ -271,7 +266,7 @@ public class Algorithm {
             inactive_entry_count_trained = 0;
             p_value_original = 0;
             p_value_trained = 0;
-            category = 0;
+            category = 10;
         }
         void fill_original(double active, double inactive, double p_value) {
             active_entry_count_original = active;
@@ -312,21 +307,45 @@ public class Algorithm {
                                         Map<String, String> signature_to_inchi, int height) throws CDKException {
         int molecule_index = 0;
         for (IMolecule m : this.molecule_data) { //find all interesting substructures
+            HashMap<String, HashSet<Integer>> inchi_indices = new HashMap<String, HashSet<Integer>>();
             for (int i = 0; i < m.getAtomCount(); i++) {
+                HashSet<Integer> local_hash_set = new HashSet<Integer>();
                 if (this.atom_states.get(molecule_index).get(i) == false) { //not in the current signatures and not viewed (we still search in this direction and it's not viewed)
                     AtomSignature as = new AtomSignature(i, height, m);
-                    signature_to_inchi.put(as.toCanonicalString(), atom_signature_to_inchi(as));
-                    if (current_signatures.containsKey(as.toString()) == false) {
+                    String string_repr = atom_signature_to_inchi(as);
+                    int vertex_count = as.getVertexCount();
+                    for (int iii = 0; iii < vertex_count; ++iii) {
+                        local_hash_set.add(as.getOriginalVertexIndex(iii));
+                    }
+                    if (inchi_indices.get(string_repr) == null) {
+                        inchi_indices.put(string_repr, local_hash_set);
+                    }
+                    else {
+                        if (inchi_indices.get(string_repr).containsAll(local_hash_set)) {
+                            Signature_position sp = new Signature_position(molecule_index, i);
+                            current_signatures.get(string_repr).met_positions.add(sp);
+                            continue;
+                        } else {
+                            inchi_indices.get(string_repr).addAll(local_hash_set);
+                        }
+                    }
+                    if (current_signatures.containsKey(string_repr) == false) {
                         Signature_state ss = new Signature_state();
-                        current_signatures.put(as.toString(), ss);
+                        current_signatures.put(string_repr, ss);
                     }
                     if (!is_original) {
-                        current_signatures.get(as.toString()).add(molecule_index, i,
-                                                                  this.activity_data.get(molecule_index),
-                                                                  accuracies.get(molecule_index));
+                        if (use_accuracy) {
+                            current_signatures.get(string_repr).add(molecule_index, i,
+                                                                    this.activity_data.get(molecule_index),
+                                                                    accuracies.get(molecule_index));
+                        }
+                        else {
+                            current_signatures.get(string_repr).add(molecule_index, i,
+                                                                    this.activity_data.get(molecule_index), 0);
+                        }
                     } else {
-                        current_signatures.get(as.toString()).add(molecule_index, i,
-                                                                  this.activity_data.get(molecule_index), 0);
+                        current_signatures.get(string_repr).add(molecule_index, i,
+                                                                this.activity_data.get(molecule_index), 0);
                     }
                 }
             }
@@ -351,43 +370,37 @@ public class Algorithm {
     void process_signatures(Map<String, Signature_state> current_signatures, int height, Map<String, SignatureInfo> table)
             throws CDKException, FileNotFoundException, UnsupportedEncodingException {
         for (Map.Entry<String, Signature_state> substructure : current_signatures.entrySet()) {
+            String as_string = substructure.getKey();
             if (substructure.getValue().n_dash > minimum_occurrence) {
                 double current_frequency = substructure.getValue().m_dash / substructure.getValue().n_dash;
                 double n_ = substructure.getValue().n_dash;
                 double m_ = substructure.getValue().m_dash;
                 if (current_frequency > substructure_frequency) {
                     Double true_p_value = calculate_p_value(m_, n_);
-
                     if (true_p_value < p_value_threshold) {
                         for (Signature_position sp : substructure.getValue().met_positions) {
                             atom_states.get(sp.molecule_number).set(sp.atom_number, true);
                         }
-
-                        String as_string = substructure.getKey();
-                        String InChi = atom_signature_to_inchi(as_string);
-                        final_signatures_active.put(InChi, true_p_value);
-                        active.put(InChi, as_string);
-                        //heights_active.put(as_string, height);
+                        final_signatures_active.put(as_string, true_p_value);
+                        active.put(as_string, as_string);
                         if (is_original) {
                             SignatureInfo si = new SignatureInfo();
                             si.fill_original(m_, n_ - m_, true_p_value);
-                            table.put(InChi, si);
+                            table.put(as_string, si);
                         }
                         else {
-                            SignatureInfo si = table.get(InChi);
+                            SignatureInfo si = table.get(as_string);
                             if (si == null) {
                                 si = new SignatureInfo();
-                                table.put(InChi, si);
+                                table.put(as_string, si);
                             }
                             si.fill_trained(m_, n_ - m_, true_p_value, substructure.getValue().average_accuracy);
                         }
                     }
                     else {
                         if (prev_active.size() != 0) {
-                            String as_string = substructure.getKey();
-                            String InChi = atom_signature_to_inchi(as_string);
-                            if (prev_active.containsKey(InChi)) {
-                                int_active.put(InChi, new p_value_pair(prev_active.get(InChi), true_p_value));
+                            if (prev_active.containsKey(as_string)) {
+                                int_active.put(as_string, new p_value_pair(prev_active.get(as_string), true_p_value));
                             }
                         }
                     }
@@ -404,36 +417,33 @@ public class Algorithm {
                                 Math.pow(new Double(data_num - active_num)/data_num, n_ - k);
                     }
                     true_p_value += Math.pow(new Double(active_num) / data_num, n_);
+                    if (as_string.equals("[C]([C]([C])[C]([C][C]))")) {
+                        System.out.println("Found interesting " + substructure.getValue().m_dash + " " + substructure.getValue().n_dash + " " + height + " " + true_p_value);
+                    }
                     if (true_p_value < p_value_threshold) {
                         for (Signature_position sp : substructure.getValue().met_positions) {
                             atom_states.get(sp.molecule_number).set(sp.atom_number, true);
                         }
-                        String as_string = substructure.getKey();
-                        String InChi = atom_signature_to_inchi(as_string);
-                        final_signatures_inactive.put(InChi, true_p_value);
-                        inactive.put(InChi, as_string);
-                        //heights_inactive.put(as_string, height);
+                        final_signatures_inactive.put(as_string, true_p_value);
+                        inactive.put(as_string, as_string);
                         if (is_original) {
                             SignatureInfo si = new SignatureInfo();
-                            si.fill_original(m_, n_ - m_, true_p_value);
-                            table.put(InChi, si);
+                            si.fill_original(substructure.getValue().m_dash, n_ - substructure.getValue().m_dash, true_p_value);
+                            table.put(as_string, si);
                         }
                         else {
-                            SignatureInfo si = table.get(InChi);
+                            SignatureInfo si = table.get(as_string);
                             if (si == null) {
                                 si = new SignatureInfo();
-                                table.put(InChi, si);
+                                table.put(as_string, si);
                             }
-                            System.out.println("Accuracy " + substructure.getValue().average_accuracy);
-                            si.fill_trained(m_, n_ - m_, true_p_value, substructure.getValue().average_accuracy);
+                            si.fill_trained(substructure.getValue().m_dash, n_ - substructure.getValue().m_dash, true_p_value, substructure.getValue().average_accuracy);
                         }
                     }
                     else {
                         if (prev_inactive.size() != 0) {
-                            String as_string = substructure.getKey();
-                            String InChi = atom_signature_to_inchi(as_string);
-                            if (prev_inactive.containsKey(InChi)) {
-                                int_inactive.put(InChi, new p_value_pair(prev_inactive.get(InChi), true_p_value));
+                            if (prev_inactive.containsKey(as_string)) {
+                                int_inactive.put(as_string, new p_value_pair(prev_inactive.get(as_string), true_p_value));
                             }
                         }
                     }
@@ -515,7 +525,9 @@ public class Algorithm {
                     writer.println(substructure.getKey() + ' ' + substructure.getValue());
             } catch (Exception e) {
                 if (substructure.getKey() != null) {
-                    System.out.println(substructure.getKey().toString());
+                    System.err.println(substructure.getKey().toString());
+                } else {
+                    System.err.println(e.getMessage());
                 }
             }
         }
@@ -527,36 +539,23 @@ public class Algorithm {
                     writer.println(substructure.getKey() + ' ' + substructure.getValue());
             } catch (Exception e) {
                 if (substructure.getKey() != null) {
-                    System.out.println(substructure.getKey().toString());
+                    System.err.println(substructure.getKey().toString());
+                } else {
+                    System.err.println(e.getMessage());
                 }
             }
         }
-        /*PrintWriter writer2 = new PrintWriter(path + "signatures_active_heights.txt", "UTF-8");
-        for (Map.Entry<String, Integer> substructure : heights_active.entrySet()) {
-            writer2.println(substructure.getKey() + ' ' + substructure.getValue());
-        }
-        writer2.close();
-        writer2 = new PrintWriter(path + "signatures_inactive_heights.txt", "UTF-8");
-        for (Map.Entry<String, Integer> substructure : heights_inactive.entrySet()) {
-            writer2.println(substructure.getKey() + ' ' + substructure.getValue());
-        }
-        writer2.close();*/
         PrintWriter writer2 = new PrintWriter("int_signatures_active.txt", "UTF-8");
-        //System.out.println(int_active.size());
         Iterator it = int_active.entrySet().iterator();
         while (it.hasNext()) {
             Map.Entry pair = (Map.Entry)it.next();
-            //previously we wrote only those on the verge
-            //writer.println(drawMolecule((String)pair.getKey()));
             writer2.println(pair.getValue().toString());
         }
         writer2.close();
         writer2 = new PrintWriter("int_signatures_inactive.txt", "UTF-8");
         it = int_inactive.entrySet().iterator();
-        //System.out.println(int_inactive.size());
         while (it.hasNext()) {
             Map.Entry pair = (Map.Entry)it.next();
-            //println(drawMolecule((String)pair.getKey()));
             writer2.println(pair.getValue().toString());
         }
         writer2.close();
@@ -582,6 +581,7 @@ public class Algorithm {
     double pi;
     boolean is_next;
     boolean is_original;
+    boolean use_accuracy;
     ArrayList<IMolecule> molecule_data;
     ArrayList<Boolean> activity_data;
     ArrayList<ArrayList<Boolean>> atom_states;
@@ -594,8 +594,6 @@ public class Algorithm {
     HashMap<String, Double> prev_inactive;
     HashMap<String, p_value_pair> int_active;
     HashMap<String, p_value_pair> int_inactive;
-    //HashMap<String, Integer> heights_active;
-    //HashMap<String, Integer> heights_inactive;
 
     public static void main(String[] args) throws FileNotFoundException, UnsupportedEncodingException, CDKException,
             IOException {
@@ -603,7 +601,7 @@ public class Algorithm {
         Map<String, SignatureInfo> table = new HashMap<String, SignatureInfo>();
 
         try {
-            observer.initialize_algorithms(Double.parseDouble(args[4]), Integer.parseInt(args[5]), Double.parseDouble(args[6]));
+            observer.initialize_algorithms(Double.parseDouble(args[4]), Integer.parseInt(args[5]), Double.parseDouble(args[6]), Boolean.parseBoolean(args[7]));
             observer.run(table);
         } catch (Exception e) {
             e.printStackTrace();
